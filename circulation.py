@@ -52,7 +52,7 @@ class Circulation:
         plt.quiver(self.xx, self.yy, self.rvx, self.rvy, color='r')
         plt.plot(self.x_coord, self.y_coord, 'b.')
         plt.quiver(self.x_coord, self.y_coord, self.vx, self.vy, color='b')
-        plt.title('{} Circulation'.format(self.name))
+        plt.title('{} Circulation = {:.3f}'.format(self.name, self.gamma))
         plt.xlim([self.xx.min()-1, self.xx.max()+1])
         plt.ylim([self.yy.min()-1, self.yy.max()+1])
         plt.gca().set_aspect('equal')
@@ -71,6 +71,64 @@ class EllipseCirculation(Circulation):
         super().__init__(coord_x, coord_y, 'Ellipse')
 
 
+class SquareCirculation(Circulation):
+    def __init__(self, a: float, b: float,
+                 x0: float = 0, y0: float = 0,
+                 num_points: int = 400):
+        assert a > 0 and b > 0
+        quarter_points = int(0.25*num_points)
+        # X, Y coordinates of square
+        x1 = np.array([x0 + 0.5*a]*quarter_points)
+        y1 = np.linspace(y0 - 0.5*b, y0 + 0.5*b, quarter_points)
+
+        x2 = np.linspace(x0 + 0.5 * a, x0 - 0.5 * a, quarter_points)
+        y2 = np.array([y0 + 0.5*b]*quarter_points)
+
+        x3 = np.array([x0 - 0.5*a]*quarter_points)
+        y3 = y1[::-1]
+
+        x4 = x2[::-1]
+        y4 = np.array([y0 - 0.5*b]*quarter_points)
+
+        coord_x = np.concatenate([x1, x2, x3, x4])
+        coord_y = np.concatenate([y1, y2, y3, y4])
+        super().__init__(coord_x, coord_y, 'Square')
+
+
+class TriangleCirculation(Circulation):
+    @staticmethod
+    def lin_space(p1: tuple, p2: tuple, num_points: int) -> tuple:
+        k = (p2[1] - p1[1])/(p2[0] - p1[0]) \
+            if p2[0] != p1[0] else 0
+        b = p1[1] - k*p1[0]
+
+        x = np.linspace(p1[0], p2[0], num_points) if k != 0 or p1[1] == p2[1] \
+            else np.array([p1[0]]*num_points)
+        y = k * x + b if k != 0 \
+            else np.linspace(p1[1], p2[1], num_points)
+
+        return x, y
+
+    def __init__(self, p1: tuple, p2: tuple, p3: tuple,
+                 num_points: int = 15):
+        assert len(p1) == len(p2) == len(p3) == 2
+        assert p1 != p2 != p3
+        # X, Y coordinates of triangle
+        x1, y1 = self.lin_space(p1, p2, num_points)
+        x2, y2 = self.lin_space(p2, p3, num_points)
+        x3, y3 = self.lin_space(p3, p1, num_points)
+
+        coord_x = np.concatenate([x1, x2, x3])
+        coord_y = np.concatenate([y1, y2, y3])
+        super().__init__(coord_x, coord_y, 'Triangle')
+
+
 if __name__ == '__main__':
-    ellipse = EllipseCirculation(10, 10, 0, 0)
-    ellipse.plot()
+    # ellipse = EllipseCirculation(1*np.pi, 1*np.pi, 0, 0)
+    # ellipse.plot()
+    # square = SquareCirculation(15, 15, 0, 0)
+    # square.plot()
+    # triangle = TriangleCirculation((10, 10), (20, 20), (15, -5))
+    # triangle.plot()
+    pass
+
