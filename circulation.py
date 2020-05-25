@@ -1,6 +1,9 @@
+import re
 import numpy as np
 from scipy import interpolate
+from bs4 import BeautifulSoup
 import matplotlib.pyplot as plt
+import urllib.request as urllib2
 
 
 class Figure:
@@ -8,6 +11,52 @@ class Figure:
         self.name = name
         self.x_coord = x_coord
         self.y_coord = y_coord
+
+
+class UIUSHelper:
+    def __new__(cls, *args, **kwargs):
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(UIUSHelper, cls).__new__(cls)
+            cls.base_file_path = 'https://m-selig.ae.illinois.edu/ads/'
+            cls.html_page = urllib2.urlopen('{}coord_database.html'.format(cls.base_file_path))
+            cls.soup = BeautifulSoup(cls.html_page, 'html.parser')
+        return cls.instance
+
+    @staticmethod
+    def parse_data(data: str) -> tuple:
+        find_numbers = re.fullmatch(r'\s*(\d+\.?\d+)\s+(\d+\.?\d+)\s*',
+                                    data)
+        if find_numbers and len(find_numbers.groups()) > 1:
+            x, y = find_numbers.group(1), find_numbers.group(2)
+            return True, 10*float(x), 10*float(y)
+        return False, 0, 0
+
+    def get_data(self, name: str) -> tuple:
+        attrs = {'href': re.compile(f'{name}\\.dat', re.IGNORECASE)}
+        data = self.soup.find('a', attrs=attrs)
+        if not data:
+            return np.empty(0), np.empty(0)
+        read = urllib2.urlopen(self.base_file_path + data.get('href'))
+        if not read:
+            return np.empty(0), np.empty(0)
+        coords = read.read().decode().split('\r\n')
+        coord_x = np.empty(0)
+        coord_y = np.empty(0)
+        for coord in coords:
+            res, x, y = self.parse_data(coord)
+            if res:
+                coord_x = np.append(coord_x, x)
+                coord_y = np.append(coord_y, y)
+        return coord_x, coord_y
+
+
+class Airfoil(Figure):
+    helper = UIUSHelper()
+
+    def __init__(self, name: str):
+        coord_x, coord_y = Airfoil.helper.get_data(name)
+        assert len(coord_x) == len(coord_y) > 0
+        super().__init__(name, coord_x, coord_y)
 
 
 class Ellipse(Figure):
@@ -186,7 +235,12 @@ if __name__ == '__main__':
     # circulation = Circulation(fig)
     # circulation.plot()
 
-    fig = Ogive(3, 1, 9)
+    # fig = Ogive(3, 1, 9)
+    # circulation = Circulation(fig)
+    # circulation.plot()
+
+    fig = Airfoil('geminism')
     circulation = Circulation(fig)
     circulation.plot()
+
 
