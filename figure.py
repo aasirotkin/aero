@@ -2,6 +2,8 @@ import re
 import numpy as np
 from bs4 import BeautifulSoup
 import urllib.request as urllib2
+from os.path import exists
+from os import getcwd
 
 
 class Grid:
@@ -12,12 +14,14 @@ class Grid:
     in spite of on the first glance it is not
     appropriate place for it.
     """
-    def __init__(self, x0: int = 0, y0: int = 0,
-                 width: int = 50, height: int = 50,
+    def __init__(self, x0: float = 0.0, y0: float = 0.0,
+                 width: float = 50.0, height: float = 50.0,
                  num_points: int = 0):
-        assert width > 0 and height > 0 and num_points >= 0
-        self.x_num = width + 1 if num_points == 0 else num_points
-        self.y_num = height + 1 if num_points == 0 else num_points
+        assert width > 0.0 and height > 0.0 and num_points >= 0
+        self.x_num = int(max(width, 1) + 1) \
+            if num_points == 0 else num_points
+        self.y_num = int(max(height, 1) + 1) \
+            if num_points == 0 else num_points
         self.x = np.linspace(x0, x0 + width, self.x_num)
         self.y = np.linspace(y0, y0 + height, self.y_num)
         self.xx, self.yy = np.meshgrid(self.x, self.y)
@@ -26,6 +30,94 @@ class Grid:
         y_stream_line = self.y
         self.stream_line_start = \
             np.vstack((x_stream_line, y_stream_line)).T
+
+
+class DownloadHelper:
+    """
+    This class helps you to download
+    airfoil shape from the site:
+    https://m-selig.ae.illinois.edu/ads/coord_database.html
+    Next this class parses downloaded data
+    and returns airfoil coordinates.
+    Also it can get data from the given directory.
+    First initialization required a lot of time.
+    """
+    def __new__(cls, *args, **kwargs):
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(DownloadHelper, cls).__new__(cls)
+            cls.base_file_path = 'https://m-selig.ae.illinois.edu/ads/'
+            cls.html_page = urllib2.urlopen('{}coord_database.html'
+                                            .format(cls.base_file_path))
+            cls.soup = BeautifulSoup(cls.html_page, 'html.parser')
+            cls.number = r'\s*([-+]?\d*\.\d+)\s+([-+]?\d*\.\d+)\s*'
+        return cls.instance
+
+    def __download_data(self, name: str) -> str:
+        """
+        Tries to download and parse data by given name.
+        """
+        attrs = {'href': re.compile(f'{name}\\.dat', re.IGNORECASE)}
+        data = self.soup.find('a', attrs=attrs)
+        if not data:
+            return ''
+        read = urllib2.urlopen(self.base_file_path + data.get('href'))
+        if not read:
+            return ''
+        return read.read().decode()
+
+    def __parse_data(self, text: list,
+                     max_value: float) -> tuple:
+        """
+        Parses data.
+        Returns x and y arrays.
+        """
+        xy = list()
+        for coord in text:
+            find_numbers = re.fullmatch(self.number, coord)
+            if find_numbers:
+                xy.append((find_numbers.group(1),
+                           find_numbers.group(2)))
+        coord_x, coord_y = np.empty(0), np.empty(0)
+        for x, y in xy:
+            coord_x = np.append(coord_x, float(x))
+            coord_y = np.append(coord_y, float(y))
+        return coord_x, coord_y
+
+    def get_online_data(self, name: str) -> tuple:
+        """
+        Get data from the internet.
+        Name should be writen without extension.
+        """
+        text = self.__download_data(name)
+        return self.__parse_data(text.split('\n'), 1.0)
+
+    def get_data(self, name: str, path: str = '',
+                 max_value: float = 1.0) -> tuple:
+        """
+        Get data from the local repository.
+        """
+        if not path:
+            path = getcwd()
+        path = '{}/{}'.format(path, name)
+        if not exists(path):
+            return None, None
+        with open(path, 'r') as file:
+            text = file.read().split('\n')
+        return self.__parse_data(text, max_value)
+
+    def download_all_data(self, path: str = '', ext: str = 'txt') -> None:
+        """
+        Downloads all data in the given path.
+        More than 1500 airfoils.
+        """
+        if not path:
+            path = getcwd()
+        attrs = {'href': re.compile(f'.*\\.dat', re.IGNORECASE)}
+        data = self.soup.find_all('a', attrs=attrs)
+        for d in data:
+            name = re.sub('\\.dat', '', d.getText(), flags=re.IGNORECASE)
+            urllib2.urlretrieve(self.base_file_path + d.get('href'),
+                                '{}/{}.{}'.format(path, name.lower(), ext))
 
 
 class Figure:
@@ -46,6 +138,19 @@ class Figure:
         self.x, self.y = x, y
         self.x0, self.y0 = x0, y0
         self.num_points = num_points
+
+    def rect(self) -> tuple:
+        """
+        This method returns:
+        x0: min x coordinate;
+        y0: min y coordinate;
+        a - figure length (Ox axis)
+        b - figure width (Oy axis)
+        """
+        x0, y0 = min(self.x), min(self.y)
+        dx = abs(max(self.x) - x0)
+        dy = abs(max(self.y) - y0)
+        return x0, y0, dx, dy
 
 
 class Ellipse(Figure):
@@ -134,67 +239,25 @@ class Triangle(Figure):
                          p1[0], p1[1])
 
 
-class UIUSHelper:
-    """
-    This class helps yot to download
-    airfoil shape from the site:
-    https://m-selig.ae.illinois.edu/ads/coord_database.html
-    Next this class parse download data
-    and return airfoil coordinates.
-    """
-    def __new__(cls, *args, **kwargs):
-        if not hasattr(cls, 'instance'):
-            cls.instance = super(UIUSHelper, cls).__new__(cls)
-            cls.base_file_path = 'https://m-selig.ae.illinois.edu/ads/'
-            cls.html_page = urllib2.urlopen('{}coord_database.html'.format(cls.base_file_path))
-            cls.soup = BeautifulSoup(cls.html_page, 'html.parser')
-        return cls.instance
-
-    @staticmethod
-    def parse_data(data: str) -> tuple:
-        """
-        Parse data using the pattern:
-        \s*(\d+\.?\d+)\s+(\d+\.?\d+)\s*
-        Returns result as bool and two coordinates.
-        """
-        find_numbers = re.fullmatch(r'\s*(\d+\.?\d+)\s+(\d+\.?\d+)\s*',
-                                    data)
-        if find_numbers and len(find_numbers.groups()) > 1:
-            x, y = find_numbers.group(1), find_numbers.group(2)
-            return True, float(x), float(y)
-        return False, 0, 0
-
-    def get_data(self, name: str) -> tuple:
-        """
-        Trying to download and parse data by given name.
-        """
-        coord_x, coord_y = np.empty(0), np.empty(0)
-        attrs = {'href': re.compile(f'{name}\\.dat', re.IGNORECASE)}
-        data = self.soup.find('a', attrs=attrs)
-        if not data:
-            return coord_x, coord_y
-        read = urllib2.urlopen(self.base_file_path + data.get('href'))
-        if not read:
-            return coord_x, coord_y
-        coords = read.read().decode().split('\r\n')
-        for coord in coords:
-            res, x, y = self.parse_data(coord)
-            if res:
-                coord_x = np.append(coord_x, x)
-                coord_y = np.append(coord_y, y)
-        return coord_x, coord_y
-
-
 class Airfoil(Figure):
     """
     Airfoil figure:
-    Any airfoil you might want to have from the site:
+    Any airfoil you might want to have from the site
     https://m-selig.ae.illinois.edu/ads/coord_database.html
-    Name should be writen without .dat!
+    of from the given path if you downloaded data before.
+    Path is used only for offline mode (online = False).
+    For online mode (online = True) name should be writen
+    without '.dat' extension.
+    For offline mode name should be writen fully,
+    with extension.
     """
-    def __init__(self, name: str):
-        helper = UIUSHelper()
-        coord_x, coord_y = helper.get_data(name)
+    def __init__(self, name: str, path: str = '',
+                 online: bool = False):
+        helper = DownloadHelper()
+        if not online:
+            coord_x, coord_y = helper.get_data(name, path)
+        else:
+            coord_x, coord_y = helper.get_online_data(name)
         assert len(coord_x) == len(coord_y) > 0
         super().__init__(name, coord_x, coord_y)
 

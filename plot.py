@@ -9,8 +9,8 @@ class Plot:
     """
     def __init__(self, grid: Grid):
         self.grid = grid
-        plt.xlim([grid.xx.min() - 1, grid.xx.max() + 1])
-        plt.ylim([grid.yy.min() - 1, grid.yy.max() + 1])
+        plt.xlim([grid.xx.min(), grid.xx.max()])
+        plt.ylim([grid.yy.min(), grid.yy.max()])
         plt.gca().set_aspect('equal')
 
     def plot_flow(self, flow: Flow) -> None:
@@ -51,6 +51,10 @@ class Plot:
         plt.text(x, y, text,
                  horizontalalignment='center',
                  verticalalignment='center')
+
+    @staticmethod
+    def title(text: str) -> None:
+        plt.title(text)
 
     @staticmethod
     def show():

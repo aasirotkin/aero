@@ -4,12 +4,12 @@ Everything about aerodynamics
 This repository contains all my aerodynamics homework.
 It is not huge enough right now, but I hope it will grow!
 
-This project consists from files:
+This project consists of files:
 - flow - contains methods to create simple and combined flows;
 - figure - contains methods to create figures;
 - plot - contains methods to plot flows and figures;
 - circulation - contains method to calculate circulation of a given flow and figure;
-- test - contains exaple of how it can work.
+- test - contains example of how it can work.
 
 Main idea of physics that lies inside the formulas in this file was taken from Anderson.
 (https://www.amazon.com/Fundamentals-Aerodynamics-John-Anderson-Jr/dp/0073398101)
@@ -23,4 +23,4 @@ in a more python-way.
 
 I have tried to describe all classes inside every file,
 so if you are interested in it, you will find more
-detail explanation inside every file.
+detailed explanation inside every file.
