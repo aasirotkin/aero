@@ -57,6 +57,14 @@ class Plot:
         plt.title(text)
 
     @staticmethod
+    def save_image(path: str) -> None:
+        plt.savefig(path, bbox_inches='tight')
+
+    @staticmethod
+    def close() -> None:
+        plt.clf()
+
+    @staticmethod
     def show():
         """
         This method must be called after all

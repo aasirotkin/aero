@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import urllib.request as urllib2
 from os.path import exists
 from os import getcwd
+from urllib.error import URLError
 
 
 class Grid:
@@ -46,11 +47,21 @@ class DownloadHelper:
         if not hasattr(cls, 'instance'):
             cls.instance = super(DownloadHelper, cls).__new__(cls)
             cls.base_file_path = 'https://m-selig.ae.illinois.edu/ads/'
-            cls.html_page = urllib2.urlopen('{}coord_database.html'
-                                            .format(cls.base_file_path))
-            cls.soup = BeautifulSoup(cls.html_page, 'html.parser')
-            cls.number = r'\s*([-+]?\d*\.\d+)\s+([-+]?\d*\.\d+)\s*'
+            cls.is_internet_on = cls.internet_on()
+            cls.number = r'\s*([-+]?\d*\.\d*[eE]?[+-]?\d*)\s+([-+]?\d*\.\d*[eE]?[+-]?\d*)\s*'
+            if cls.is_internet_on:
+                cls.html_page = urllib2.urlopen('{}coord_database.html'
+                                                .format(cls.base_file_path))
+                cls.soup = BeautifulSoup(cls.html_page, 'html.parser')
         return cls.instance
+
+    @staticmethod
+    def internet_on():
+        try:
+            urllib2.urlopen('http://216.58.192.142', timeout=1)
+            return True
+        except URLError:
+            return False
 
     def __download_data(self, name: str) -> str:
         """
@@ -65,22 +76,53 @@ class DownloadHelper:
             return ''
         return read.read().decode()
 
-    def __parse_data(self, text: list,
-                     max_value: float) -> tuple:
+    def __parse_text(self, xy: list, text: list, name: str):
+        max_value = 1.1 if 'n642415' not in name else 100.1
+        for coord in text:
+            find_numbers = re.fullmatch(self.number, coord)
+            if find_numbers:
+                x = float(find_numbers.group(1))
+                y = float(find_numbers.group(2))
+                if x > max_value or y > max_value:
+                    continue
+                xy.append([x, y])
+
+    @staticmethod
+    def __check_xy(xy: list, name: str):
+        x_previous = xy[0][0]
+        if -0.1 < x_previous < 0.1 or \
+                'ua79sff' in name:
+            direction_changed = False
+            xy_up, xy_down = list(), list()
+            for i, (x, y) in enumerate(xy):
+                if not direction_changed and \
+                        x_previous <= x:
+                    xy_up.append((x, y))
+                    x_previous = x
+                else:
+                    xy_down.append((x, y))
+                    direction_changed = True
+            xy_down.sort(key=lambda c: c[0], reverse=True)
+            xy.clear()
+            xy.extend(xy_up)
+            xy.extend(xy_down)
+
+    def __parse_data(self, text: list, name: str) -> tuple:
         """
         Parses data.
         Returns x and y arrays.
         """
         xy = list()
-        for coord in text:
-            find_numbers = re.fullmatch(self.number, coord)
-            if find_numbers:
-                xy.append((find_numbers.group(1),
-                           find_numbers.group(2)))
+        self.__parse_text(xy, text, name)
+        self.__check_xy(xy, name)
         coord_x, coord_y = np.empty(0), np.empty(0)
         for x, y in xy:
-            coord_x = np.append(coord_x, float(x))
-            coord_y = np.append(coord_y, float(y))
+            coord_x = np.append(coord_x, x)
+            coord_y = np.append(coord_y, y)
+        if coord_x[0] != coord_x[-1] or \
+                coord_y[0] != coord_y[-1]:
+            coord_x = np.append(coord_x, coord_x[0])
+            coord_y = np.append(coord_y, coord_y[0])
         return coord_x, coord_y
 
     def get_online_data(self, name: str) -> tuple:
@@ -88,11 +130,11 @@ class DownloadHelper:
         Get data from the internet.
         Name should be writen without extension.
         """
+        assert self.is_internet_on
         text = self.__download_data(name)
-        return self.__parse_data(text.split('\n'), 1.0)
+        return self.__parse_data(text.split('\n'), name)
 
-    def get_data(self, name: str, path: str = '',
-                 max_value: float = 1.0) -> tuple:
+    def get_data(self, name: str, path: str = '') -> tuple:
         """
         Get data from the local repository.
         """
@@ -103,13 +145,14 @@ class DownloadHelper:
             return None, None
         with open(path, 'r') as file:
             text = file.read().split('\n')
-        return self.__parse_data(text, max_value)
+        return self.__parse_data(text, name)
 
     def download_all_data(self, path: str = '', ext: str = 'txt') -> None:
         """
         Downloads all data in the given path.
         More than 1500 airfoils.
         """
+        assert self.is_internet_on
         if not path:
             path = getcwd()
         attrs = {'href': re.compile(f'.*\\.dat', re.IGNORECASE)}
@@ -181,19 +224,19 @@ class Square(Figure):
                  x0: float = 0, y0: float = 0,
                  num_points: int = 400):
         assert a > 0 and b > 0
-        quarter_points = int(0.25*num_points)
+        quarter_points = int(0.25 * num_points)
         # X, Y coordinates of square
-        x1 = np.array([x0 + 0.5*a]*quarter_points)
-        y1 = np.linspace(y0 - 0.5*b, y0 + 0.5*b, quarter_points)
+        x1 = np.array([x0 + 0.5 * a] * quarter_points)
+        y1 = np.linspace(y0 - 0.5 * b, y0 + 0.5 * b, quarter_points)
 
         x2 = np.linspace(x0 + 0.5 * a, x0 - 0.5 * a, quarter_points)
-        y2 = np.array([y0 + 0.5*b]*quarter_points)
+        y2 = np.array([y0 + 0.5 * b] * quarter_points)
 
-        x3 = np.array([x0 - 0.5*a]*quarter_points)
+        x3 = np.array([x0 - 0.5 * a] * quarter_points)
         y3 = y1[::-1]
 
         x4 = x2[::-1]
-        y4 = np.array([y0 - 0.5*b]*quarter_points)
+        y4 = np.array([y0 - 0.5 * b] * quarter_points)
 
         coord_x = np.concatenate([x1, x2, x3, x4])
         coord_y = np.concatenate([y1, y2, y3, y4])
@@ -213,12 +256,12 @@ class Triangle(Figure):
         This function creates line and divide it
         on points.
         """
-        k = (p2[1] - p1[1])/(p2[0] - p1[0]) \
+        k = (p2[1] - p1[1]) / (p2[0] - p1[0]) \
             if p2[0] != p1[0] else 0
-        b = p1[1] - k*p1[0]
+        b = p1[1] - k * p1[0]
 
         x = np.linspace(p1[0], p2[0], num_points) if k != 0 or p1[1] == p2[1] \
-            else np.array([p1[0]]*num_points)
+            else np.array([p1[0]] * num_points)
         y = k * x + b if k != 0 \
             else np.linspace(p1[1], p2[1], num_points)
 
@@ -244,7 +287,7 @@ class Airfoil(Figure):
     Airfoil figure:
     Any airfoil you might want to have from the site
     https://m-selig.ae.illinois.edu/ads/coord_database.html
-    of from the given path if you downloaded data before.
+    or from the given path if you downloaded data before.
     Path is used only for offline mode (online = False).
     For online mode (online = True) name should be writen
     without '.dat' extension.
@@ -282,8 +325,8 @@ class Ogive(Figure):
         b = np.arcsin(h1 / h1h2)
         kt = np.tan(a + b)
         kc = -1.0 / kt
-        bt = yt - kt*xt
-        bc = yc - kc*xc
+        bt = yt - kt * xt
+        bc = yc - kc * xc
         x0 = (bc - bt) / (kt - kc)
         y0 = kt * x0 + bt
         h4 = abs(y0 - yc)
@@ -310,7 +353,7 @@ class Ogive(Figure):
         y3 = y1[::-1]
 
         x4 = np.linspace(base_r, -base_r, num_points)
-        y4 = np.array([0]*num_points)
+        y4 = np.array([0] * num_points)
 
         coord_x = np.concatenate([x1, x2, x3, x4])
         coord_y = np.concatenate([y1, y2, y3, y4])

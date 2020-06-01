@@ -2,6 +2,7 @@ from plot import Plot
 import figure
 import flow
 from circulation import Circulation
+from os import listdir
 
 
 def circulation_flow_figure_test() -> None:
@@ -67,7 +68,7 @@ def download_all_airfoil_data() -> None:
 
 def plot_airfoil_data() -> None:
     """
-    This test plots airfoils by given name
+    This test plots airfoils by given name.
     """
     # Write your own path here
     path = r'C:\Users\User\Documents\python\aero\airfoils_data'
@@ -86,3 +87,30 @@ def plot_airfoil_data() -> None:
     plt.plot_figure(airfoil)
     plt.title(name)
     plt.show()
+
+
+def save_airfoil_images():
+    """
+    This test saves all airfoil images to
+    the given directory.
+    """
+    # Write your own path with airfoil data here
+    airfoil_path = r'C:\Users\User\Documents\python\aero\airfoils_data'
+    # Write your own path to save images here (Path must already exists)
+    picture_path = r'C:\Users\User\Documents\python\aero\airfoils_picture'
+    files = listdir(airfoil_path)
+    for i, file in enumerate(files):
+        airfoil = figure.Airfoil(file, airfoil_path)
+
+        # Create grid
+        x0, y0, dx, dy = airfoil.rect()
+        grid = figure.Grid(x0 - 0.1, y0 - 0.1,
+                           dx + 0.2, dy + 0.2)
+
+        # Plot
+        plt = Plot(grid)
+        plt.plot_figure(airfoil)
+        plt.title(file)
+        plt.save_image('{}\\{}.png'.format(picture_path, file))
+        plt.close()
+        print(i, file)
