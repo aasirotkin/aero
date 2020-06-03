@@ -4,6 +4,7 @@ import flow
 from circulation import Circulation
 from os import listdir
 import numpy as np
+from source_panel_method import SourcePanelMethod
 
 
 def circulation_flow_figure_test() -> None:
@@ -127,8 +128,67 @@ def pressure_coef_test():
     plt.show()
 
 
+def test_source_panel_method():
+    # Write your own path here
+    path = r'C:\Users\User\Documents\python\aero\airfoils_data'
+    # Airfoil name
+    name = '2032c.txt'
+    test_fig = figure.Airfoil(name, path)
+
+    # test_fig = figure.Circle(10, num_points=100)
+    # test_fig = figure.Ellipse(10, 5, num_points=100)
+    # test_fig = figure.Square(10, num_points=100)
+    # test_fig = figure.Triangle((0, 0), (6, 0), (3, 3))
+    # test_fig = figure.Triangle((0, 0), (0, 6), (3, 3))
+    # test_fig = figure.Triangle((0, 0), (6, 3), (3, 4))
+    # test_fig = figure.Polygon('Polygon',
+    #                           [(1, 1), (2, 2), (3, 3),
+    #                            (2, 3), (2, 4), (1, 4), (0, 3)])
+    # test_fig = figure.Ogive(1, 0.1, 5)
+    spm = SourcePanelMethod(test_fig)
+    x0, y0, dx, dy = test_fig.rect
+    grid = figure.Grid(x0 - 1.0, y0 - 1.0,
+                       dx + 2.0, dy + 2.0)
+    plt = Plot(grid)
+    plt.plot_figure(test_fig)
+    plt.plot_source_panel_method(spm.geometry)
+    plt.show()
+
+
+def save_airfoil_source_panel_method_images():
+    """
+    This test saves all airfoil images to
+    the given directory.
+    """
+    # Write your own path with airfoil data here
+    airfoil_path = r'C:\Users\User\Documents\python\aero\airfoils_data'
+    # Write your own path to save images here (Path must already exists)
+    picture_path = r'C:\Users\User\Documents\python\aero\airfoils_picture_spm'
+    files = listdir(airfoil_path)
+    for i, file in enumerate(files):
+        airfoil = figure.Airfoil(file, airfoil_path)
+
+        spm = SourcePanelMethod(airfoil)
+
+        # Create grid
+        x0, y0, dx, dy = airfoil.rect
+        grid = figure.Grid(x0 - 1.0, y0 - 1.0,
+                           dx + 2.0, dy + 2.0)
+
+        # Plot
+        plt = Plot(grid)
+        plt.plot_figure(airfoil)
+        plt.plot_source_panel_method(spm.geometry)
+        plt.title(file)
+        plt.save_image('{}\\{}.png'.format(picture_path, file))
+        plt.close()
+        print(i, file)
+
+
 # circulation_flow_figure_test()
 # download_all_airfoil_data()
 # plot_airfoil_data()
 # save_airfoil_images()
 # pressure_coef_test()
+# test_source_panel_method()
+# save_airfoil_source_panel_method_images()
