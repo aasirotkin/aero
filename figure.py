@@ -183,9 +183,10 @@ class Figure:
         self.num_points = num_points
 
     @staticmethod
-    def lin_space(start: float, stop: float, num_points: int) -> np.array:
+    def lin_space(start: float, stop: float,
+                  num_points: int, endpoint: bool = True) -> np.array:
         assert num_points > 0
-        return np.linspace(start, stop, num_points + 1)
+        return np.linspace(start, stop, num_points + 1, endpoint=endpoint)
 
     @property
     def coordinates(self):
@@ -257,17 +258,21 @@ class Rectangle(Figure):
         assert a > 0 and b > 0
         quarter_points = int(0.25 * num_points)
         # X, Y coordinates of square
-        x1 = np.array([x0 + 0.5 * a] * quarter_points)
-        y1 = self.lin_space(y0 - 0.5 * b, y0 + 0.5 * b, quarter_points)
+        x1 = np.array([x0 + 0.5 * a] * (quarter_points + 1))
+        y1 = self.lin_space(y0 - 0.5 * b, y0 + 0.5 * b,
+                            quarter_points, False)
 
-        x2 = self.lin_space(x0 + 0.5 * a, x0 - 0.5 * a, quarter_points)
-        y2 = np.array([y0 + 0.5 * b] * quarter_points)
+        x2 = self.lin_space(x0 + 0.5 * a, x0 - 0.5 * a,
+                            quarter_points, False)
+        y2 = np.array([y0 + 0.5 * b] * (quarter_points + 1))
 
-        x3 = np.array([x0 - 0.5 * a] * quarter_points)
-        y3 = y1[::-1]
+        x3 = np.array([x0 - 0.5 * a] * (quarter_points + 1))
+        y3 = self.lin_space(y0 + 0.5 * b, y0 - 0.5 * b,
+                            quarter_points, False)
 
-        x4 = x2[::-1]
-        y4 = np.array([y0 - 0.5 * b] * quarter_points)
+        x4 = self.lin_space(x0 - 0.5 * a, x0 + 0.5 * a,
+                            quarter_points)
+        y4 = np.array([y0 - 0.5 * b] * (quarter_points + 1))
 
         coord_x = np.concatenate([x1, x2, x3, x4])
         coord_y = np.concatenate([y1, y2, y3, y4])
@@ -292,7 +297,8 @@ class Polygon(Figure):
     points - coordinate points,
     each length might be 2.
     """
-    def make_side(self, p1: tuple, p2: tuple, num_points: int) -> tuple:
+    def make_side(self, p1: tuple, p2: tuple,
+                  num_points: int, endpoint: bool = True) -> tuple:
         """
         This function creates line and divide it
         on points.
@@ -300,11 +306,14 @@ class Polygon(Figure):
         k = (p2[1] - p1[1]) / (p2[0] - p1[0]) \
             if p2[0] != p1[0] else 0
         b = p1[1] - k * p1[0]
+        appendix = 1 if endpoint or k == 0 else 0
 
-        x = self.lin_space(p1[0], p2[0], num_points) if k != 0 or p1[1] == p2[1] \
-            else np.array([p1[0]] * (num_points + 1))
+        x = self.lin_space(p1[0], p2[0], num_points, endpoint) \
+            if k != 0 or p1[1] == p2[1] \
+            else np.array([p1[0]] * (num_points + appendix))
         y = k * x + b if k != 0 \
-            else self.lin_space(p1[1], p2[1], num_points)
+            else self.lin_space(p1[1], p2[1],
+                                num_points, endpoint)
 
         return x, y
 
@@ -325,12 +334,15 @@ class Polygon(Figure):
         yc = sum(p[1] for p in points)/length
         points.sort(key=lambda c: self.atan(xc, yc, c[0], c[1]))
         coord_x, coord_y = np.empty(0), np.empty(0)
+        endpoint = False
         for i in range(length):
             if i == (length - 1):
                 p1, p2 = points[i], points[0]
+                endpoint = True
             else:
                 p1, p2 = points[i], points[i+1]
-            x, y = self.make_side(p1, p2, num_points)
+            x, y = self.make_side(p1, p2,
+                                  num_points, endpoint)
             coord_x = np.append(coord_x, x)
             coord_y = np.append(coord_y, y)
 
@@ -402,7 +414,7 @@ class Ogive(Figure):
         return x0, y0, kt, bt, gamma
 
     def __init__(self, base_r: float, nose_r: float, length: float,
-                 num_points: int = 3):
+                 num_points: int = 25):
         assert length > base_r > nose_r > 0
         # X, Y coordinates of ogive (it look's like warhead)
         x0, y0, kt, bt, gamma = \
@@ -410,7 +422,7 @@ class Ogive(Figure):
         gamma1 = 0.5 * (np.pi - gamma)
         gamma2 = gamma1 + gamma
 
-        x1 = self.lin_space(x0, -base_r, num_points)
+        x1 = self.lin_space(x0, -base_r, num_points, False)
         y1 = kt * x1 + bt
 
         x2 = self.lin_space(-base_r, base_r, num_points)
@@ -419,7 +431,8 @@ class Ogive(Figure):
         x3 = -1.0 * x1[::-1]
         y3 = y1[::-1]
 
-        tetta = self.lin_space(gamma1, gamma2, num_points)
+        tetta = self.lin_space(gamma2, gamma1, num_points,
+                               False)[::-1]
         x4 = nose_r * np.cos(tetta)
         y4 = nose_r * np.sin(tetta) + length - nose_r
 
