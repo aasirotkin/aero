@@ -25,9 +25,9 @@ def circulation_flow_figure_test() -> None:
     plt = Plot(grid)
 
     # Create figures
-    ellipse = figure.Ellipse(8.0, 1.0, 0.0, -7.0, num_points=360)
-    circle = figure.Ellipse(2.0, 2.0, num_points=360)
-    square = figure.Square(4.0, 4.0, 6.0, 5.0, num_points=360)
+    ellipse = figure.Ellipse(8.0, 1.0, 0.0, -7.0)
+    circle = figure.Circle(2.0)
+    square = figure.Square(4.0, 6.0, 5.0, num_points=360)
     triangle = figure.Triangle((-3.0, 3.0), (-8.0, 3.0), (-5.5, 8.0))
 
     # Draw the flow's streamlines and the figures

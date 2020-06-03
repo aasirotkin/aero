@@ -102,10 +102,10 @@ class DownloadHelper:
                 else:
                     xy_down.append((x, y))
                     direction_changed = True
-            xy_down.sort(key=lambda c: c[0], reverse=True)
+            xy_up.sort(key=lambda c: c[0], reverse=True)
             xy.clear()
-            xy.extend(xy_up)
             xy.extend(xy_down)
+            xy.extend(xy_up)
 
     def __parse_data(self, text: list, name: str) -> tuple:
         """
@@ -182,6 +182,16 @@ class Figure:
         self.x0, self.y0 = x0, y0
         self.num_points = num_points
 
+    @staticmethod
+    def lin_space(start: float, stop: float, num_points: int) -> np.array:
+        assert num_points > 0
+        return np.linspace(start, stop, num_points + 1)
+
+    @property
+    def coordinates(self):
+        return np.array([(self.x[i], self.y[i])
+                         for i in range(self.length)])
+
     @property
     def length(self):
         return len(self.x)
@@ -214,19 +224,30 @@ class Ellipse(Figure):
     """
     def __init__(self, a: float, b: float,
                  x0: float = 0, y0: float = 0,
-                 num_points: int = 100):
+                 num_points: int = 360):
         assert a > 0 and b > 0
         # X, Y coordinates of ellipse
-        tetta = np.linspace(0.0, 2.0 * np.pi, num_points)
+        tetta = self.lin_space(0.0, 2.0 * np.pi, num_points)
         coord_x = a * np.cos(tetta) + x0
         coord_y = b * np.sin(tetta) + y0
         super().__init__('Ellipse', coord_x, coord_y,
                          x0, y0, num_points)
 
 
-class Square(Figure):
+class Circle(Ellipse):
     """
-    Square figure:
+    Circle figure:
+    a - radius
+    """
+    def __init__(self, a: float,
+                 x0: float = 0, y0: float = 0,
+                 num_points: int = 360):
+        super().__init__(a, a, x0, y0, num_points)
+
+
+class Rectangle(Figure):
+    """
+    Rectangle figure:
     a - length (Ox axis)
     b - width (Oy axis)
     """
@@ -237,9 +258,9 @@ class Square(Figure):
         quarter_points = int(0.25 * num_points)
         # X, Y coordinates of square
         x1 = np.array([x0 + 0.5 * a] * quarter_points)
-        y1 = np.linspace(y0 - 0.5 * b, y0 + 0.5 * b, quarter_points)
+        y1 = self.lin_space(y0 - 0.5 * b, y0 + 0.5 * b, quarter_points)
 
-        x2 = np.linspace(x0 + 0.5 * a, x0 - 0.5 * a, quarter_points)
+        x2 = self.lin_space(x0 + 0.5 * a, x0 - 0.5 * a, quarter_points)
         y2 = np.array([y0 + 0.5 * b] * quarter_points)
 
         x3 = np.array([x0 - 0.5 * a] * quarter_points)
@@ -254,14 +275,24 @@ class Square(Figure):
                          x0, y0, num_points)
 
 
-class Triangle(Figure):
+class Square(Rectangle):
     """
-    Triangle figure:
-    p1, p2, p3 - coordinate points,
-    they might be a tuple with length equals 2
+    Square figure:
+    a - length (Ox and Oy axis)
     """
-    @staticmethod
-    def lin_space(p1: tuple, p2: tuple, num_points: int) -> tuple:
+    def __init__(self, a: float,
+                 x0: float = 0, y0: float = 0,
+                 num_points: int = 400):
+        super().__init__(a, a, x0, y0, num_points)
+
+
+class Polygon(Figure):
+    """
+    Polygon figure:
+    points - coordinate points,
+    each length might be 2.
+    """
+    def make_side(self, p1: tuple, p2: tuple, num_points: int) -> tuple:
         """
         This function creates line and divide it
         on points.
@@ -270,26 +301,53 @@ class Triangle(Figure):
             if p2[0] != p1[0] else 0
         b = p1[1] - k * p1[0]
 
-        x = np.linspace(p1[0], p2[0], num_points) if k != 0 or p1[1] == p2[1] \
-            else np.array([p1[0]] * num_points)
+        x = self.lin_space(p1[0], p2[0], num_points) if k != 0 or p1[1] == p2[1] \
+            else np.array([p1[0]] * (num_points + 1))
         y = k * x + b if k != 0 \
-            else np.linspace(p1[1], p2[1], num_points)
+            else self.lin_space(p1[1], p2[1], num_points)
 
         return x, y
 
+    @staticmethod
+    def atan(xc: float, yc: float, x: float, y: float):
+        dx = x - xc
+        dy = y - yc
+        return np.arctan2(dy, dx)
+
+    def __init__(self, name: str, points: list,
+                 num_points: int = 15):
+        assert len(points) > 0 and len(points[0]) == 2
+        if not name:
+            name = 'Polygon'
+        length = len(points)
+        # X, Y coordinates of triangle
+        xc = sum(p[0] for p in points)/length
+        yc = sum(p[1] for p in points)/length
+        points.sort(key=lambda c: self.atan(xc, yc, c[0], c[1]))
+        coord_x, coord_y = np.empty(0), np.empty(0)
+        for i in range(length):
+            if i == (length - 1):
+                p1, p2 = points[i], points[0]
+            else:
+                p1, p2 = points[i], points[i+1]
+            x, y = self.make_side(p1, p2, num_points)
+            coord_x = np.append(coord_x, x)
+            coord_y = np.append(coord_y, y)
+
+        super().__init__(name, coord_x, coord_y)
+
+
+class Triangle(Polygon):
+    """
+    Triangle figure:
+    p1, p2, p3 - coordinate points,
+    they might be a tuple with length equals 2
+    """
     def __init__(self, p1: tuple, p2: tuple, p3: tuple,
                  num_points: int = 15):
         assert len(p1) == len(p2) == len(p3) == 2
         assert p1 != p2 != p3
-        # X, Y coordinates of triangle
-        x1, y1 = self.lin_space(p1, p2, num_points)
-        x2, y2 = self.lin_space(p2, p3, num_points)
-        x3, y3 = self.lin_space(p3, p1, num_points)
-
-        coord_x = np.concatenate([x1, x2, x3])
-        coord_y = np.concatenate([y1, y2, y3])
-        super().__init__('Triangle', coord_x, coord_y,
-                         p1[0], p1[1])
+        super().__init__('Triangle', [p1, p2, p3], num_points)
 
 
 class Airfoil(Figure):
@@ -344,7 +402,7 @@ class Ogive(Figure):
         return x0, y0, kt, bt, gamma
 
     def __init__(self, base_r: float, nose_r: float, length: float,
-                 num_points: int = 20):
+                 num_points: int = 3):
         assert length > base_r > nose_r > 0
         # X, Y coordinates of ogive (it look's like warhead)
         x0, y0, kt, bt, gamma = \
@@ -352,18 +410,18 @@ class Ogive(Figure):
         gamma1 = 0.5 * (np.pi - gamma)
         gamma2 = gamma1 + gamma
 
-        x1 = np.linspace(-base_r, x0, num_points)
+        x1 = self.lin_space(x0, -base_r, num_points)
         y1 = kt * x1 + bt
 
-        tetta = np.linspace(gamma2, gamma1, num_points)
-        x2 = nose_r * np.cos(tetta)
-        y2 = nose_r * np.sin(tetta) + length - nose_r
+        x2 = self.lin_space(-base_r, base_r, num_points)
+        y2 = np.array([0] * (num_points + 1))
 
         x3 = -1.0 * x1[::-1]
         y3 = y1[::-1]
 
-        x4 = np.linspace(base_r, -base_r, num_points)
-        y4 = np.array([0] * num_points)
+        tetta = self.lin_space(gamma1, gamma2, num_points)
+        x4 = nose_r * np.cos(tetta)
+        y4 = nose_r * np.sin(tetta) + length - nose_r
 
         coord_x = np.concatenate([x1, x2, x3, x4])
         coord_y = np.concatenate([y1, y2, y3, y4])
