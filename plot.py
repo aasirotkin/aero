@@ -47,8 +47,9 @@ class Plot:
         plt.title('{} Flow'.format(flow.name))
 
     @staticmethod
-    def plot_text(x: float, y: float, text: str) -> None:
-        plt.text(x, y, text,
+    def plot_text(xy: tuple, text: str) -> None:
+        assert len(xy) == 2
+        plt.text(xy[0], xy[1], text,
                  horizontalalignment='center',
                  verticalalignment='center')
 

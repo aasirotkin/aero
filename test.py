@@ -3,6 +3,7 @@ import figure
 import flow
 from circulation import Circulation
 from os import listdir
+import numpy as np
 
 
 def circulation_flow_figure_test() -> None:
@@ -43,10 +44,10 @@ def circulation_flow_figure_test() -> None:
     tr_gamma = Circulation.circulation(grid, lift_flow, triangle)
 
     # Draw text
-    plt.plot_text(ellipse.x0, ellipse.y0, '{:.02f}'.format(el_gamma))
-    plt.plot_text(circle.x0, circle.y0, '{:.02f}'.format(ci_gamma))
-    plt.plot_text(square.x0, square.y0, '{:.02f}'.format(sq_gamma))
-    plt.plot_text(triangle.x0, triangle.y0, '{:.02f}'.format(tr_gamma))
+    plt.plot_text(ellipse.center, '{:.02f}'.format(el_gamma))
+    plt.plot_text(circle.center, '{:.02f}'.format(ci_gamma))
+    plt.plot_text(square.center, '{:.02f}'.format(sq_gamma))
+    plt.plot_text(triangle.center, '{:.02f}'.format(tr_gamma))
 
     # Show the plot
     plt.show()
@@ -79,7 +80,7 @@ def plot_airfoil_data() -> None:
     # airfoil = figure.Airfoil(name, online=True)
 
     # Create grid
-    x0, y0, dx, dy = airfoil.rect()
+    x0, y0, dx, dy = airfoil.rect
     grid = figure.Grid(x0, y0, dx, dy)
 
     # Plot
@@ -103,7 +104,7 @@ def save_airfoil_images():
         airfoil = figure.Airfoil(file, airfoil_path)
 
         # Create grid
-        x0, y0, dx, dy = airfoil.rect()
+        x0, y0, dx, dy = airfoil.rect
         grid = figure.Grid(x0 - 0.1, y0 - 0.1,
                            dx + 0.2, dy + 0.2)
 
@@ -114,3 +115,20 @@ def save_airfoil_images():
         plt.save_image('{}\\{}.png'.format(picture_path, file))
         plt.close()
         print(i, file)
+
+
+def pressure_coef_test():
+    grid = figure.Grid(-10, -3, 20, 4)
+    plt = Plot(grid)
+    tetta = np.linspace(-2.*np.pi, 2.*np.pi, 4*360)
+    pr_coef = 1. - 4. * (np.sin(tetta) ** 2)
+    coef = figure.Figure('Pressure coef', tetta, pr_coef)
+    plt.plot_figure(coef)
+    plt.show()
+
+
+# circulation_flow_figure_test()
+# download_all_airfoil_data()
+# plot_airfoil_data()
+# save_airfoil_images()
+# pressure_coef_test()

@@ -182,6 +182,16 @@ class Figure:
         self.x0, self.y0 = x0, y0
         self.num_points = num_points
 
+    @property
+    def length(self):
+        return len(self.x)
+
+    @property
+    def center(self):
+        return sum(self.x) / self.length,\
+               sum(self.y) / self.length
+
+    @property
     def rect(self) -> tuple:
         """
         This method returns:
