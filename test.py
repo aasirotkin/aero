@@ -129,13 +129,14 @@ def pressure_coef_test():
 
 
 def test_source_panel_method():
-    # Write your own path here
-    path = r'C:\Users\User\Documents\python\aero\airfoils_data'
-    # Airfoil name
-    name = 'goe623.txt'
-    test_fig = figure.Airfoil(name, path)
+    uniform = flow.UniformFlow(1)
+    # # Write your own path here
+    # path = r'C:\Users\User\Documents\python\aero\airfoils_data'
+    # # Airfoil name
+    # name = 'goe623.txt'
+    # # test_fig = figure.Airfoil(name, path)
 
-    # test_fig = figure.Circle(10, num_points=100)
+    test_fig = figure.Circle(10, num_points=8)
     # test_fig = figure.Ellipse(10, 5, num_points=100)
     # test_fig = figure.Square(10, num_points=100)
     # test_fig = figure.Rectangle(10, 5, num_points=100)
@@ -146,7 +147,7 @@ def test_source_panel_method():
     #                           [(1, 1), (2, 2), (3, 3),
     #                            (2, 3), (2, 4), (1, 4), (0, 3)])
     # test_fig = figure.Ogive(2, 1, 5)
-    spm = SourcePanelMethod(test_fig)
+    spm = SourcePanelMethod(test_fig, uniform)
     x0, y0, dx, dy = test_fig.rect
     grid = figure.Grid(x0 - 0.1*dx, y0 - 0.1*dy,
                        dx + 0.2*dx, dy + 0.2*dy)
@@ -191,5 +192,5 @@ def save_airfoil_source_panel_method_images():
 # plot_airfoil_data()
 # save_airfoil_images()
 # pressure_coef_test()
-# test_source_panel_method()
+test_source_panel_method()
 # save_airfoil_source_panel_method_images()

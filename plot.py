@@ -32,7 +32,8 @@ class Plot:
 
     @staticmethod
     def plot_source_panel_method(geometry: list):
-        for i, (x1, y1, x2, y2) in enumerate(geometry):
+        for i, g in enumerate(geometry):
+            (x1, y1, x2, y2) = g[0:4]
             if i == 0:
                 color = 'r'
             elif i == 1:
