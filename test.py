@@ -132,7 +132,7 @@ def test_source_panel_method():
     # Write your own path here
     path = r'C:\Users\User\Documents\python\aero\airfoils_data'
     # Airfoil name
-    name = '2032c.txt'
+    name = 'goe623.txt'
     test_fig = figure.Airfoil(name, path)
 
     # test_fig = figure.Circle(10, num_points=100)
@@ -148,8 +148,8 @@ def test_source_panel_method():
     # test_fig = figure.Ogive(2, 1, 5)
     spm = SourcePanelMethod(test_fig)
     x0, y0, dx, dy = test_fig.rect
-    grid = figure.Grid(x0 - 1.0, y0 - 1.0,
-                       dx + 2.0, dy + 2.0)
+    grid = figure.Grid(x0 - 0.1*dx, y0 - 0.1*dy,
+                       dx + 0.2*dx, dy + 0.2*dy)
     plt = Plot(grid)
     plt.plot_figure(test_fig)
     plt.plot_source_panel_method(spm.geometry)
@@ -164,7 +164,7 @@ def save_airfoil_source_panel_method_images():
     # Write your own path with airfoil data here
     airfoil_path = r'C:\Users\User\Documents\python\aero\airfoils_data'
     # Write your own path to save images here (Path must already exists)
-    picture_path = r'C:\Users\User\Documents\python\aero\airfoils_picture_spm'
+    picture_path = r'C:\Users\User\Documents\python\aero\airfoils_picture'
     files = listdir(airfoil_path)
     for i, file in enumerate(files):
         airfoil = figure.Airfoil(file, airfoil_path)
@@ -173,8 +173,8 @@ def save_airfoil_source_panel_method_images():
 
         # Create grid
         x0, y0, dx, dy = airfoil.rect
-        grid = figure.Grid(x0 - 1.0, y0 - 1.0,
-                           dx + 2.0, dy + 2.0)
+        grid = figure.Grid(x0 - 0.1*dx, y0 - 0.1*dy,
+                           dx + 0.2*dx, dy + 0.2*dy)
 
         # Plot
         plt = Plot(grid)
@@ -191,5 +191,5 @@ def save_airfoil_source_panel_method_images():
 # plot_airfoil_data()
 # save_airfoil_images()
 # pressure_coef_test()
-test_source_panel_method()
+# test_source_panel_method()
 # save_airfoil_source_panel_method_images()

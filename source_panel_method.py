@@ -19,7 +19,7 @@ class SourcePanelMethod:
             if fi < 0.0:
                 fi += 2.0 * np.pi
             betta = fi + 0.5 * np.pi
-            nx = xc + np.cos(betta)
-            ny = yc + np.sin(betta)
+            nx = xc + s*np.cos(betta)
+            ny = yc + s*np.sin(betta)
 
             self.geometry.append((xc, yc, nx, ny))

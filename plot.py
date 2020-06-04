@@ -32,8 +32,14 @@ class Plot:
 
     @staticmethod
     def plot_source_panel_method(geometry: list):
-        for (x1, y1, x2, y2) in geometry:
-            plt.plot((x1, x2), (y1, y2))
+        for i, (x1, y1, x2, y2) in enumerate(geometry):
+            if i == 0:
+                color = 'r'
+            elif i == 1:
+                color = 'b'
+            else:
+                color = 'k'
+            plt.plot((x1, x2), (y1, y2), color)
 
     def __plot(self, flow: Flow,
                is_plot: bool = False,
