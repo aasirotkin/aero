@@ -33,6 +33,25 @@ class Grid:
             np.vstack((x_stream_line, y_stream_line)).T
 
 
+class Geometry:
+    def __init__(self, length):
+        self.length = length
+        self.s = np.empty(0)
+        self.xc = np.empty(0)
+        self.yc = np.empty(0)
+        self.ac = np.empty(0)
+        self.nx = np.empty(0)
+        self.ny = np.empty(0)
+        self.xi = np.empty(0)
+        self.yi = np.empty(0)
+        self.fi = np.empty(0)
+        self.sin_fi = np.empty(0)
+        self.cos_fi = np.empty(0)
+        self.delta = np.empty(0)
+        self.sin_de = np.empty(0)
+        self.cos_de = np.empty(0)
+
+
 class DownloadHelper:
     """
     This class helps you to download
@@ -102,10 +121,11 @@ class DownloadHelper:
                 else:
                     xy_down.append((x, y))
                     direction_changed = True
-            xy_up.sort(key=lambda c: c[0], reverse=True)
+            xy_down.sort(key=lambda c: c[0],
+                         reverse=True)
             xy.clear()
-            xy.extend(xy_down)
             xy.extend(xy_up)
+            xy.extend(xy_down)
 
     def __parse_data(self, text: list, name: str) -> tuple:
         """
@@ -228,7 +248,7 @@ class Ellipse(Figure):
                  num_points: int = 360):
         assert a > 0 and b > 0
         # X, Y coordinates of ellipse
-        tetta = self.lin_space(0.0, 2.0 * np.pi, num_points)
+        tetta = self.lin_space(2 * np.pi, 0.0, num_points)
         coord_x = a * np.cos(tetta) + x0
         coord_y = b * np.sin(tetta) + y0
         super().__init__('Ellipse', coord_x, coord_y,
@@ -259,20 +279,20 @@ class Rectangle(Figure):
         quarter_points = int(0.25 * num_points)
         # X, Y coordinates of square
         x1 = np.array([x0 + 0.5 * a] * (quarter_points + 1))
-        y1 = self.lin_space(y0 - 0.5 * b, y0 + 0.5 * b,
+        y1 = self.lin_space(y0 + 0.5 * b, y0 - 0.5 * b,
                             quarter_points, False)
 
         x2 = self.lin_space(x0 + 0.5 * a, x0 - 0.5 * a,
                             quarter_points, False)
-        y2 = np.array([y0 + 0.5 * b] * (quarter_points + 1))
+        y2 = np.array([y0 - 0.5 * b] * (quarter_points + 1))
 
         x3 = np.array([x0 - 0.5 * a] * (quarter_points + 1))
-        y3 = self.lin_space(y0 + 0.5 * b, y0 - 0.5 * b,
+        y3 = self.lin_space(y0 - 0.5 * b, y0 + 0.5 * b,
                             quarter_points, False)
 
         x4 = self.lin_space(x0 - 0.5 * a, x0 + 0.5 * a,
                             quarter_points)
-        y4 = np.array([y0 - 0.5 * b] * (quarter_points + 1))
+        y4 = np.array([y0 + 0.5 * b] * (quarter_points + 1))
 
         coord_x = np.concatenate([x1, x2, x3, x4])
         coord_y = np.concatenate([y1, y2, y3, y4])
@@ -332,7 +352,8 @@ class Polygon(Figure):
         # X, Y coordinates of triangle
         xc = sum(p[0] for p in points)/length
         yc = sum(p[1] for p in points)/length
-        points.sort(key=lambda c: self.atan(xc, yc, c[0], c[1]))
+        points.sort(key=lambda c: self.atan(xc, yc, c[0], c[1]),
+                    reverse=True)
         coord_x, coord_y = np.empty(0), np.empty(0)
         endpoint = False
         for i in range(length):
@@ -422,19 +443,18 @@ class Ogive(Figure):
         gamma1 = 0.5 * (np.pi - gamma)
         gamma2 = gamma1 + gamma
 
-        x1 = self.lin_space(x0, -base_r, num_points, False)
+        x1 = self.lin_space(-base_r, x0, num_points, False)
         y1 = kt * x1 + bt
 
-        x2 = self.lin_space(-base_r, base_r, num_points)
-        y2 = np.array([0] * (num_points + 1))
+        tetta = self.lin_space(gamma2, gamma1, num_points)
+        x2 = nose_r * np.cos(tetta)
+        y2 = nose_r * np.sin(tetta) + length - nose_r
 
-        x3 = -1.0 * x1[::-1]
-        y3 = y1[::-1]
+        x3 = (-1.0 * x1[::-1])[:-1]
+        y3 = (y1[::-1])[:-1]
 
-        tetta = self.lin_space(gamma2, gamma1, num_points,
-                               False)[::-1]
-        x4 = nose_r * np.cos(tetta)
-        y4 = nose_r * np.sin(tetta) + length - nose_r
+        x4 = self.lin_space(base_r, -base_r, num_points)
+        y4 = np.array([0] * (num_points + 1))
 
         coord_x = np.concatenate([x1, x2, x3, x4])
         coord_y = np.concatenate([y1, y2, y3, y4])

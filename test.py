@@ -118,25 +118,15 @@ def save_airfoil_images():
         print(i, file)
 
 
-def pressure_coef_test():
-    grid = figure.Grid(-10, -3, 20, 4)
-    plt = Plot(grid)
-    tetta = np.linspace(-2.*np.pi, 2.*np.pi, 4*360)
-    pr_coef = 1. - 4. * (np.sin(tetta) ** 2)
-    coef = figure.Figure('Pressure coef', tetta, pr_coef)
-    plt.plot_figure(coef)
-    plt.show()
-
-
-def test_source_panel_method():
+def test_source_panel_method_geometry():
     uniform = flow.UniformFlow(1)
     # # Write your own path here
     # path = r'C:\Users\User\Documents\python\aero\airfoils_data'
     # # Airfoil name
     # name = 'goe623.txt'
-    # # test_fig = figure.Airfoil(name, path)
+    # test_fig = figure.Airfoil(name, path)
 
-    test_fig = figure.Circle(10, num_points=8)
+    test_fig = figure.Circle(1, num_points=8)
     # test_fig = figure.Ellipse(10, 5, num_points=100)
     # test_fig = figure.Square(10, num_points=100)
     # test_fig = figure.Rectangle(10, 5, num_points=100)
@@ -154,6 +144,7 @@ def test_source_panel_method():
     plt = Plot(grid)
     plt.plot_figure(test_fig)
     plt.plot_source_panel_method(spm.geometry)
+
     plt.show()
 
 
@@ -187,10 +178,28 @@ def save_airfoil_source_panel_method_images():
         print(i, file)
 
 
+def pressure_coef_source_panel_method_test():
+    uniform = flow.UniformFlow(1)
+    circle = figure.Circle(10, num_points=360)
+    spm = SourcePanelMethod(circle, uniform)
+
+    grid = figure.Grid(0.0, -3.0, 2.0 * np.pi, 4.0)
+    plt = Plot(grid)
+    tetta = np.linspace(0.0, 2.*np.pi, 360)
+    cp = 1. - 4. * (np.sin(tetta) ** 2)
+    analytic_coef = figure.Figure('Pressure coef', tetta, cp)
+    plt.plot_figure(analytic_coef)
+
+    spm_coef = figure.Figure('Spm coef', spm.geometry.ac, spm.cp)
+    plt.plot_figure(spm_coef, '.b')
+
+    plt.show()
+
+
 # circulation_flow_figure_test()
 # download_all_airfoil_data()
 # plot_airfoil_data()
 # save_airfoil_images()
-# pressure_coef_test()
-test_source_panel_method()
 # save_airfoil_source_panel_method_images()
+test_source_panel_method_geometry()
+# pressure_coef_source_panel_method_test()

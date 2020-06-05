@@ -1,52 +1,67 @@
-from figure import Figure
+from figure import Figure, Geometry, Grid
 from flow import UniformFlow
 import numpy as np
+from shapely.geometry.polygon import Polygon
 
 
 class SourcePanelMethod:
-    def __init__(self, figure: Figure, flow: UniformFlow):
-        self.flow = flow
-        self.geometry = list()
-        self.n_variables = list()
-        self.t_variables = list()
+    def __init__(self, figure: Figure, flow: UniformFlow, grid: Grid = None):
+        self.v_inf = flow.vel
+        self.alpha = flow.alpha
+        self.geometry = Geometry(figure.length - 1)
+
+        self.n_variables = np.zeros(shape=(self.geometry.length,
+                                           self.geometry.length))
+        self.t_variables = np.zeros(shape=(self.geometry.length,
+                                           self.geometry.length))
+        self.vn_variables = np.empty(0)
+        self.vt_variables = np.empty(0)
+        self.lambdas = np.empty(0)
+        self.n_velocities = np.empty(self.geometry.length)
+        self.t_velocities = np.empty(self.geometry.length)
+        self.cp = np.empty(0)
+
         self.calc_geometry(figure)
         self.calc_integrand()
+        self.calc_lambdas()
+        self.calc_velocities()
+        self.calc_pressure_coef()
+        if grid:
+            pass
 
     def calc_geometry(self, figure: Figure):
-        coords = figure.coordinates
-        for i in range(figure.length - 1):
-            x_i, y_i = coords[i]
-            x_i_1, y_i_1 = coords[i+1]
-            xc = 0.5 * (x_i + x_i_1)
-            yc = 0.5 * (y_i + y_i_1)
-            dx = x_i - x_i_1
-            dy = y_i - y_i_1
-            s = (dx ** 2 + dy ** 2) ** 0.5
-            fi = np.arctan2(dy, dx)
-            fi_ge = fi*180./np.pi
-            if fi < 0.0:
-                fi += 2.0 * np.pi
-            betta = fi + 0.5 * np.pi
-            delta = betta - self.flow.alpha
-            nx = xc + s*np.cos(betta)
-            ny = yc + s*np.sin(betta)
-            sin_fi = np.sin(fi)
-            cos_fi = np.cos(fi)
-            sin_de = np.sin(delta)
-            cos_de = np.cos(delta)
-
-            self.geometry.append((xc, yc,
-                                  nx, ny,
-                                  s, x_i, y_i,
-                                  fi, sin_fi, cos_fi,
-                                  delta, sin_de, cos_de))
+        self.geometry.xi = figure.x[:-1]
+        self.geometry.yi = figure.y[:-1]
+        self.geometry.xc = 0.5 * (figure.x[0:-1] + figure.x[1:])
+        self.geometry.yc = 0.5 * (figure.y[0:-1] + figure.y[1:])
+        dx = figure.x[1:] - figure.x[0:-1]
+        dy = figure.y[1:] - figure.y[0:-1]
+        self.geometry.ac = np.arctan2(self.geometry.yc, self.geometry.xc)
+        for i, a in enumerate(self.geometry.ac):
+            if a < 0.0:
+                self.geometry.ac[i] += 2.0 * np.pi
+        self.geometry.s = (dx ** 2 + dy ** 2) ** 0.5
+        self.geometry.fi = np.arctan2(dy, dx)
+        for i, f in enumerate(self.geometry.fi):
+            if f < 0.0:
+                self.geometry.fi[i] += 2.0 * np.pi
+        betta = self.geometry.fi + 0.5 * np.pi
+        self.geometry.delta = betta - self.alpha
+        self.geometry.nx = self.geometry.xc + \
+                           self.geometry.s * np.cos(betta)
+        self.geometry.ny = self.geometry.yc + \
+                           self.geometry.s * np.sin(betta)
+        self.geometry.sin_fi = np.sin(self.geometry.fi)
+        self.geometry.cos_fi = np.cos(self.geometry.fi)
+        self.geometry.sin_de = np.sin(self.geometry.delta)
+        self.geometry.cos_de = np.cos(self.geometry.delta)
 
     @staticmethod
     def integrand(i: int, j: int, s: float,
                   a: float, b: float, c: float,
-                  d: float, e: float) -> float:
+                  d: float, e: float, equal: float = np.pi) -> float:
         if i == j:
-            return np.pi
+            return equal
         i0 = 0.5*c
         i1 = (s**2 + 2*a*s + b) / b if b > 0.0 else 0.0
         i2 = (d - a*c) / e if e > 0.0 else 0.0
@@ -57,34 +72,53 @@ class SourcePanelMethod:
         return i5 + i6
 
     def calc_integrand(self):
-        two_pi_vel = -2.0 * np.pi * self.flow.vel
-        for i, g1 in enumerate(self.geometry):
-            (xc_i, yc_i, nx, ny,
-             s, x_i, y_i, f_i, sin_fi_i, cos_fi_i,
-             delta, sin_de_i, cos_de_i) = g1
-            self.n_variables.append(
-                [-two_pi_vel * cos_de_i])
-            self.t_variables.append(
-                [-two_pi_vel * sin_de_i])
-            for j, g2 in enumerate(self.geometry):
-                (xc_j, yc_j, nx, ny,
-                 s, x_j, y_j, f_j, sin_fi_j, cos_fi_j,
-                 delta, sin_de_j, cos_de_j) = g2
-                a = - (xc_i - x_j) * cos_fi_j \
-                    - (yc_i - y_j) * sin_fi_j
-                b = (xc_i - x_j) ** 2 \
-                    + (yc_i - y_j) ** 2
-                c_n = np.sin(f_i - f_j)
-                c_t = -np.cos(f_i - f_j)
-                d_n = - (xc_i - x_j) * sin_fi_i \
-                    + (yc_i - y_j) * cos_fi_i
-                d_t = (xc_i - x_j) * cos_fi_i \
-                    + (yc_i - y_j) * sin_fi_i
-                e_sqrt = b - a ** 2
-                e = e_sqrt ** 0.5 if e_sqrt > 0.0 else 0.0
+        self.vn_variables = 2.0 * np.pi * self.v_inf * \
+                            self.geometry.cos_de
+        self.vt_variables = 2.0 * np.pi * self.v_inf * \
+                            self.geometry.sin_de
+        for i in range(self.geometry.length):
+            a = - (self.geometry.xc[i] - self.geometry.xi) * \
+                self.geometry.cos_fi \
+                - (self.geometry.yc[i] - self.geometry.yi) * \
+                self.geometry.sin_fi
+            b = (self.geometry.xc[i] - self.geometry.xi) ** 2 \
+                + (self.geometry.yc[i] - self.geometry.yi) ** 2
+            c_n = np.sin(self.geometry.fi[i] - self.geometry.fi)
+            c_t = -np.cos(self.geometry.fi[i] - self.geometry.fi)
+            d_n = - (self.geometry.xc[i] - self.geometry.xi) * \
+                  self.geometry.sin_fi[i] \
+                  + (self.geometry.yc[i] - self.geometry.yi) * \
+                  self.geometry.cos_fi[i]
+            d_t = (self.geometry.xc[i] - self.geometry.xi) * \
+                  self.geometry.cos_fi[i] \
+                  + (self.geometry.yc[i] - self.geometry.yi) * \
+                  self.geometry.sin_fi[i]
+            e_sqrt = b - a ** 2
+            e = np.empty(self.geometry.length)
+            for j, ei in enumerate(e_sqrt):
+                e[j] = e_sqrt[j] ** 0.5 if e_sqrt[j] > 0.0 else 0.0
 
-                self.n_variables[i].append(
-                    self.integrand(i, j, s, a, b, c_n, d_n, e))
+            for j in range(self.geometry.length):
+                self.n_variables[i][j] = \
+                    self.integrand(i, j, self.geometry.s[j],
+                                   a[j], b[j], c_n[j], d_n[j], e[j])
+                self.t_variables[i][j] = \
+                    self.integrand(i, j, self.geometry.s[j],
+                                   a[j], b[j], c_t[j], d_t[j], e[j], 0.0)
 
-                self.t_variables[i].append(
-                    self.integrand(i, j, s, a, b, c_t, d_t, e))
+    def calc_lambdas(self):
+        self.lambdas = np.linalg.solve(self.n_variables,
+                                       -self.vn_variables)
+        assert sum(self.lambdas * self.geometry.s) < 1**-10
+
+    def calc_velocities(self):
+        coef = 1.0 / (2.0 * np.pi)
+        for i in range(self.geometry.length):
+            n_summary = sum(self.lambdas*self.n_variables[i])
+            t_summary = sum(self.lambdas*self.t_variables[i])
+            self.n_velocities[i] = coef * (self.vn_variables[i] + n_summary)
+            self.t_velocities[i] = coef * (self.vt_variables[i] + t_summary)
+
+    def calc_pressure_coef(self):
+        v = (self.t_velocities ** 2 + self.n_velocities ** 2) ** 0.5
+        self.cp = 1.0 - (v / self.v_inf) ** 2

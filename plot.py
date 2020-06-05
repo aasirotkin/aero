@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 from flow import Flow
-from figure import Grid, Figure
+from figure import Grid, Figure, Geometry
 
 
 class Plot:
@@ -27,13 +27,14 @@ class Plot:
         self.__plot(flow, is_stream_line=True)
 
     @staticmethod
-    def plot_figure(figure: Figure):
-        plt.plot(figure.x, figure.y)
+    def plot_figure(figure: Figure, style: str = 'k'):
+        plt.plot(figure.x, figure.y, style)
 
     @staticmethod
-    def plot_source_panel_method(geometry: list):
-        for i, g in enumerate(geometry):
-            (x1, y1, x2, y2) = g[0:4]
+    def plot_source_panel_method(geometry: Geometry):
+        for i in range(geometry.length):
+            x1, y1 = geometry.xc[i], geometry.yc[i]
+            x2, y2 = geometry.nx[i], geometry.ny[i]
             if i == 0:
                 color = 'r'
             elif i == 1:
