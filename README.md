@@ -9,6 +9,7 @@ This project consists of files:
 - figure - contains methods to create figures;
 - plot - contains methods to plot flows and figures;
 - circulation - contains method to calculate circulation of a given flow and figure;
+- source_panel_method - contains method to calculate flow over the circular body;
 - test - contains example of how it can work.
 
 Main idea of physics that lies inside the formulas in this file was taken from Anderson.
@@ -24,3 +25,6 @@ in a more python-way.
 I have tried to describe all classes inside every file,
 so if you are interested in it, you will find more
 detailed explanation inside every file.
+
+I have failed with source panel method,
+I thought I would do it for every figure but on the present I didn't.

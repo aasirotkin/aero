@@ -33,25 +33,6 @@ class Grid:
             np.vstack((x_stream_line, y_stream_line)).T
 
 
-class Geometry:
-    def __init__(self, length):
-        self.length = length
-        self.s = np.empty(0)
-        self.xc = np.empty(0)
-        self.yc = np.empty(0)
-        self.ac = np.empty(0)
-        self.nx = np.empty(0)
-        self.ny = np.empty(0)
-        self.xi = np.empty(0)
-        self.yi = np.empty(0)
-        self.fi = np.empty(0)
-        self.sin_fi = np.empty(0)
-        self.cos_fi = np.empty(0)
-        self.delta = np.empty(0)
-        self.sin_de = np.empty(0)
-        self.cos_de = np.empty(0)
-
-
 class DownloadHelper:
     """
     This class helps you to download
@@ -263,6 +244,7 @@ class Circle(Ellipse):
     def __init__(self, a: float,
                  x0: float = 0, y0: float = 0,
                  num_points: int = 360):
+        self.radius = a
         super().__init__(a, a, x0, y0, num_points)
 
 

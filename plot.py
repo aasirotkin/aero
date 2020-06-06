@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from flow import Flow
-from figure import Grid, Figure, Geometry
+from figure import Grid, Figure
+from source_panel_method import Geometry
 
 
 class Plot:
