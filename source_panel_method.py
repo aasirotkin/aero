@@ -44,7 +44,7 @@ class Geometry:
 class CircleGeometry(Geometry):
     def __init__(self, figure: Figure, alpha: float = 0.0):
         super().__init__(figure, alpha)
-        # angle between control point and OX axis
+        # angle between control point and Ox axis
         self.angle_cp = self.arc_tan_2(self.yc, self.xc)
 
 
@@ -132,13 +132,13 @@ class SourcePanelMethod(Flow):
             c_n = np.sin(self.geometry.fi[i] - self.geometry.fi)
             c_t = -np.cos(self.geometry.fi[i] - self.geometry.fi)
             d_n = - (self.geometry.xc[i] - self.geometry.xi) * \
-                  self.geometry.sin_fi[i] \
-                  + (self.geometry.yc[i] - self.geometry.yi) * \
-                  self.geometry.cos_fi[i]
+                self.geometry.sin_fi[i] \
+                + (self.geometry.yc[i] - self.geometry.yi) * \
+                self.geometry.cos_fi[i]
             d_t = (self.geometry.xc[i] - self.geometry.xi) * \
-                  self.geometry.cos_fi[i] \
-                  + (self.geometry.yc[i] - self.geometry.yi) * \
-                  self.geometry.sin_fi[i]
+                self.geometry.cos_fi[i] \
+                + (self.geometry.yc[i] - self.geometry.yi) * \
+                self.geometry.sin_fi[i]
             e_sqrt = b - a ** 2
             e = np.empty(self.geometry.length)
             for j, ei in enumerate(e_sqrt):
