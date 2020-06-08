@@ -4,7 +4,7 @@ import flow
 from circulation import Circulation
 from os import listdir
 import numpy as np
-from source_panel_method import SourcePanelMethodOverCylinderBody
+from source_panel_method import SPMCircle
 
 
 def circulation_flow_figure_test() -> None:
@@ -120,7 +120,7 @@ def save_airfoil_images():
 
 def pressure_coef_source_panel_method_test():
     circle = figure.Circle(10, num_points=100)
-    spm = SourcePanelMethodOverCylinderBody(circle, 1.0)
+    spm = SPMCircle(circle, 1.0)
 
     grid = figure.Grid(0.0, -3.0, 2.0 * np.pi, 4.0)
     plt = Plot(grid)
@@ -129,15 +129,15 @@ def pressure_coef_source_panel_method_test():
     analytic_coef = figure.Figure('Pressure coef', tetta, cp)
     plt.plot_figure(analytic_coef)
 
-    spm_coef = figure.Figure('Spm coef', spm.geometry.ac, spm.cp)
+    spm_coef = figure.Figure('Spm coef', spm.geometry.angle_cp, spm.surface_cp)
     plt.plot_figure(spm_coef, '*b')
 
     plt.show()
 
 
 def grid_source_panel_method_test():
-    circle = figure.Circle(10, num_points=100)
-    spm = SourcePanelMethodOverCylinderBody(circle, 1.0)
+    circle = figure.Circle(10, num_points=25)
+    spm = SPMCircle(circle, 1.0)
 
     grid = figure.Grid(-15.0, -15.0, 30.0, 30.0, 30)
     plt = Plot(grid)

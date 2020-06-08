@@ -1,30 +1,80 @@
 from flow import Flow
-from figure import Circle
+from figure import Figure, Grid
 import numpy as np
 
 
 class Geometry:
-    def __init__(self, length):
-        self.length = length
-        self.s = np.empty(0)
-        self.xc = np.empty(0)
-        self.yc = np.empty(0)
-        self.ac = np.empty(0)
-        self.nx = np.empty(0)
-        self.ny = np.empty(0)
-        self.xi = np.empty(0)
-        self.yi = np.empty(0)
-        self.fi = np.empty(0)
-        self.sin_fi = np.empty(0)
-        self.cos_fi = np.empty(0)
-        self.delta = np.empty(0)
-        self.sin_de = np.empty(0)
-        self.cos_de = np.empty(0)
+    def __init__(self, figure: Figure, alpha: float = 0.0):
+        # amount of panels
+        self.length = figure.length - 1
+        # start coordinates
+        self.xi = figure.x[:-1]
+        self.yi = figure.y[:-1]
+        # control point coordinates
+        self.xc = 0.5 * (figure.x[0:-1] + figure.x[1:])
+        self.yc = 0.5 * (figure.y[0:-1] + figure.y[1:])
+        # length of each panel
+        dx = figure.x[1:] - figure.x[0:-1]
+        dy = figure.y[1:] - figure.y[0:-1]
+        self.s = (dx ** 2 + dy ** 2) ** 0.5
+        # main angle of each panel
+        self.fi = self.arc_tan_2(dy, dx)
+        # angle between normal vector and panel
+        betta = self.fi + 0.5 * np.pi
+        # angle between normal vector and free stream velocity
+        self.delta = betta - alpha
+        # normal vector components
+        self.nx = self.xc + self.s * np.cos(betta)
+        self.ny = self.yc + self.s * np.sin(betta)
+        # sin, cos for angles
+        self.sin_fi = np.sin(self.fi)
+        self.cos_fi = np.cos(self.fi)
+        self.sin_de = np.sin(self.delta)
+        self.cos_de = np.cos(self.delta)
+
+    @staticmethod
+    def arc_tan_2(y: np.array, x: np.array) -> np.array:
+        fi = np.arctan2(y, x)
+        for i, f in enumerate(fi):
+            if f < 0.0:
+                fi[i] += 2.0 * np.pi
+        return fi
 
 
-class SourcePanelMethodOverCylinderBody(Flow):
+class CircleGeometry(Geometry):
+    def __init__(self, figure: Figure, alpha: float = 0.0):
+        super().__init__(figure, alpha)
+        # angle between control point and OX axis
+        self.angle_cp = self.arc_tan_2(self.yc, self.xc)
+
+
+class SourcePanelMethod(Flow):
+    def __init__(self, figure: Figure, velocity: float, alpha: float = 0.0,
+                 geometry: Geometry = None):
+        self.figure = figure
+        self.v_inf = velocity
+        self.alpha = alpha
+        self.geometry = geometry if geometry else Geometry(figure, alpha)
+
+        self.lambdas = np.empty(0)
+        self.surface_velocity = np.empty(0)
+        self.cp = np.empty(0)
+        self.surface_cp = np.empty(0)
+
+        self.calc_lambdas()
+
+        super().__init__('SPM {}'.format(figure.name))
+
+    def set_grid(self, grid: Grid):
+        """
+        Calculates velocities at every point on the plot.
+        """
+        self.vx, self.vy = self.velocity(grid.xx, grid.yy)
+        v = (self.vx ** 2 + self.vy ** 2) ** 0.5
+        self.cp = 1.0 - (v / self.v_inf) ** 2
+
     def calc_velocity(self, x: float, y: float) -> tuple:
-        if (x ** 2 + y ** 2) ** 0.5 <= self.radius:
+        if self.figure.is_inside(x, y):
             return 0.0, 0.0
         coef = 1.0 / (2.0 * np.pi)
         mx = np.empty(self.geometry.length)
@@ -36,27 +86,8 @@ class SourcePanelMethodOverCylinderBody(Flow):
         vy = self.v_inf * np.sin(self.alpha) + coef * t_summary
         return vx, vy
 
-    def __init__(self, circle: Circle, velocity: float, alpha: float = 0.0):
-        self.v_inf = velocity
-        self.alpha = alpha
-        self.radius = circle.radius
-        self.geometry = Geometry(circle.length - 1)
-        self.calc_geometry(circle)
-
-        self.lambdas = np.empty(0)
-        self.n_velocities = np.empty(self.geometry.length)
-        self.t_velocities = np.empty(self.geometry.length)
-        self.cp = np.empty(0)
-
-        self.calc_lambdas()
-        self.calc_pressure_coef()
-
-        super().__init__('SPM Cylinder')
-
-    def calc_xy_integrand(self,
-                          n_variables: np.array,
-                          t_variables: np.array,
-                          x: float, y: float):
+    def calc_xy_integrand(self, mx: np.array, my: np.array,
+                          x: float, y: float) -> None:
         a = - (x - self.geometry.xi) * self.geometry.cos_fi \
             - (y - self.geometry.yi) * self.geometry.sin_fi
         b = (x - self.geometry.xi) ** 2 + (y - self.geometry.yi) ** 2
@@ -70,39 +101,10 @@ class SourcePanelMethodOverCylinderBody(Flow):
             e[j] = e_sqrt[j] ** 0.5 if e_sqrt[j] > 0.0 else 0.0
 
         for j in range(self.geometry.length):
-            n_variables[j] = \
-                self.integrand(-1, j, self.geometry.s[j],
-                               a[j], b[j], c_x[j], d_x[j], e[j])
-            t_variables[j] = \
-                self.integrand(-1, j, self.geometry.s[j],
-                               a[j], b[j], c_y[j], d_y[j], e[j], 0.0)
-
-    def calc_geometry(self, circle: Circle):
-        self.geometry.xi = circle.x[:-1]
-        self.geometry.yi = circle.y[:-1]
-        self.geometry.xc = 0.5 * (circle.x[0:-1] + circle.x[1:])
-        self.geometry.yc = 0.5 * (circle.y[0:-1] + circle.y[1:])
-        dx = circle.x[1:] - circle.x[0:-1]
-        dy = circle.y[1:] - circle.y[0:-1]
-        self.geometry.ac = np.arctan2(self.geometry.yc, self.geometry.xc)
-        for i, a in enumerate(self.geometry.ac):
-            if a < 0.0:
-                self.geometry.ac[i] += 2.0 * np.pi
-        self.geometry.s = (dx ** 2 + dy ** 2) ** 0.5
-        self.geometry.fi = np.arctan2(dy, dx)
-        for i, f in enumerate(self.geometry.fi):
-            if f < 0.0:
-                self.geometry.fi[i] += 2.0 * np.pi
-        betta = self.geometry.fi + 0.5 * np.pi
-        self.geometry.delta = betta - self.alpha
-        self.geometry.nx = self.geometry.xc + \
-                           self.geometry.s * np.cos(betta)
-        self.geometry.ny = self.geometry.yc + \
-                           self.geometry.s * np.sin(betta)
-        self.geometry.sin_fi = np.sin(self.geometry.fi)
-        self.geometry.cos_fi = np.cos(self.geometry.fi)
-        self.geometry.sin_de = np.sin(self.geometry.delta)
-        self.geometry.cos_de = np.cos(self.geometry.delta)
+            mx[j] = self.integrand(-1, j, self.geometry.s[j],
+                                   a[j], b[j], c_x[j], d_x[j], e[j])
+            my[j] = self.integrand(-1, j, self.geometry.s[j],
+                                   a[j], b[j], c_y[j], d_y[j], e[j], 0.0)
 
     @staticmethod
     def integrand(i: int, j: int, s: float,
@@ -119,9 +121,7 @@ class SourcePanelMethodOverCylinderBody(Flow):
         i6 = i2 * (np.arctan(i3) - np.arctan(i4))
         return i5 + i6
 
-    def calc_surface_integrand(self,
-                               n_variables: np.array,
-                               t_variables: np.array):
+    def calc_surface_integrand(self, mn: np.array, mt: np.array) -> None:
         for i in range(self.geometry.length):
             a = - (self.geometry.xc[i] - self.geometry.xi) * \
                 self.geometry.cos_fi \
@@ -145,42 +145,46 @@ class SourcePanelMethodOverCylinderBody(Flow):
                 e[j] = e_sqrt[j] ** 0.5 if e_sqrt[j] > 0.0 else 0.0
 
             for j in range(self.geometry.length):
-                n_variables[i][j] = \
-                    self.integrand(i, j, self.geometry.s[j],
-                                   a[j], b[j], c_n[j], d_n[j], e[j])
-                t_variables[i][j] = \
-                    self.integrand(i, j, self.geometry.s[j],
-                                   a[j], b[j], c_t[j], d_t[j], e[j], 0.0)
+                mn[i][j] = self.integrand(i, j, self.geometry.s[j],
+                                          a[j], b[j], c_n[j], d_n[j], e[j])
+                mt[i][j] = self.integrand(i, j, self.geometry.s[j],
+                                          a[j], b[j], c_t[j], d_t[j], e[j], 0.0)
 
-    def calc_velocities(self,
-                        vn_inf: np.array, vt_inf: np.array,
-                        n_integrand: np.array, t_integrand: np.array):
+    def calc_surface_cp(self, vn_inf: np.array, vt_inf: np.array,
+                        mn: np.array, mt: np.array):
         coef = 1.0 / (2.0 * np.pi)
+        n_velocities = np.empty(self.geometry.length)
+        t_velocities = np.empty(self.geometry.length)
         for i in range(self.geometry.length):
-            n_summary = sum(self.lambdas * n_integrand[i])
-            t_summary = sum(self.lambdas * t_integrand[i])
-            self.n_velocities[i] = coef * (vn_inf[i] + n_summary)
-            self.t_velocities[i] = coef * (vt_inf[i] + t_summary)
+            n_summary = sum(self.lambdas * mn[i])
+            t_summary = sum(self.lambdas * mt[i])
+            n_velocities[i] = coef * (vn_inf[i] + n_summary)
+            t_velocities[i] = coef * (vt_inf[i] + t_summary)
+        assert all(vn < 1e-12 for vn in n_velocities)
+        self.surface_cp = 1.0 - (t_velocities / self.v_inf) ** 2
 
     def calc_lambdas(self):
-        vn_inf = 2.0 * np.pi * self.v_inf * \
-                 self.geometry.cos_de
-        vt_inf = 2.0 * np.pi * self.v_inf * \
-                 self.geometry.sin_de
-        n_integrand = np.zeros(shape=(self.geometry.length,
-                                      self.geometry.length))
-        t_integrand = np.zeros(shape=(self.geometry.length,
-                                      self.geometry.length))
+        vn_inf = 2.0 * np.pi * self.v_inf * self.geometry.cos_de
+        vt_inf = 2.0 * np.pi * self.v_inf * self.geometry.sin_de
+        mn = np.zeros(shape=(self.geometry.length,
+                             self.geometry.length))
+        mt = np.zeros(shape=(self.geometry.length,
+                             self.geometry.length))
+        self.calc_surface_integrand(mn, mt)
 
-        self.calc_surface_integrand(n_integrand, t_integrand)
+        self.lambdas = np.linalg.solve(mn, -vn_inf)
+        assert sum(self.lambdas * self.geometry.s) < 1e-12
 
-        self.lambdas = np.linalg.solve(n_integrand, -vn_inf)
-        assert sum(self.lambdas * self.geometry.s) < 1 ** -10
+        self.calc_surface_cp(vn_inf, vt_inf, mn, mt)
 
-        self.calc_velocities(vn_inf, vt_inf,
-                             n_integrand, t_integrand)
 
-    def calc_pressure_coef(self):
-        v = (self.t_velocities ** 2 + self.n_velocities ** 2) ** 0.5
-        self.cp = 1.0 - (v / self.v_inf) ** 2
-        assert max(self.cp) <= 1.0 and min(self.cp) >= -3.0
+class SPMCircle(SourcePanelMethod):
+    def __init__(self, figure: Figure, velocity: float, alpha: float = 0.0):
+        geometry = CircleGeometry(figure, alpha)
+        super().__init__(figure, velocity, alpha, geometry)
+
+    def calc_surface_cp(self, vn_inf: np.array, vt_inf: np.array,
+                        mn: np.array, mt: np.array):
+        super().calc_surface_cp(vn_inf, vt_inf, mn, mt)
+        assert min(self.surface_cp) > -(3.0 + 1e-12) and \
+            max(self.surface_cp) < (1.0 + 1e-12)

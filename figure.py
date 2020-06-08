@@ -183,6 +183,9 @@ class Figure:
         self.x0, self.y0 = x0, y0
         self.num_points = num_points
 
+    def is_inside(self, x: float, y: float):
+        pass
+
     @staticmethod
     def lin_space(start: float, stop: float,
                   num_points: int, endpoint: bool = True) -> np.array:
@@ -232,8 +235,13 @@ class Ellipse(Figure):
         tetta = self.lin_space(2 * np.pi, 0.0, num_points)
         coord_x = a * np.cos(tetta) + x0
         coord_y = b * np.sin(tetta) + y0
+        self.a, self.b = a, b
         super().__init__('Ellipse', coord_x, coord_y,
                          x0, y0, num_points)
+
+    def is_inside(self, x: float, y: float):
+        return (x-self.x0)**2 / self.a**2 + \
+               (y-self.y0)**2 / self.b**2 <= 1.0
 
 
 class Circle(Ellipse):
@@ -244,7 +252,6 @@ class Circle(Ellipse):
     def __init__(self, a: float,
                  x0: float = 0, y0: float = 0,
                  num_points: int = 360):
-        self.radius = a
         super().__init__(a, a, x0, y0, num_points)
 
 
