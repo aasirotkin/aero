@@ -265,6 +265,7 @@ class Rectangle(Figure):
                  x0: float = 0, y0: float = 0,
                  num_points: int = 400):
         assert a > 0 and b > 0
+        self.a, self.b = a, b
         quarter_points = int(0.25 * num_points)
         # X, Y coordinates of square
         x1 = np.array([x0 + 0.5 * a] * (quarter_points + 1))
@@ -287,6 +288,10 @@ class Rectangle(Figure):
         coord_y = np.concatenate([y1, y2, y3, y4])
         super().__init__('Square', coord_x, coord_y,
                          x0, y0, num_points)
+
+    def is_inside(self, x: float, y: float):
+        return (self.x0 + 0.5 * self.a) >= x >= (self.x0 - 0.5 * self.a) and \
+               (self.y0 + 0.5 * self.b) >= y >= (self.y0 - 0.5 * self.b)
 
 
 class Square(Rectangle):

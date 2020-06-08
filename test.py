@@ -4,7 +4,7 @@ import flow
 from circulation import Circulation
 from os import listdir
 import numpy as np
-from source_panel_method import SPMCircle
+from source_panel_method import SPMCircle, SourcePanelMethod
 
 
 def circulation_flow_figure_test() -> None:
@@ -136,15 +136,18 @@ def pressure_coef_source_panel_method_test():
 
 
 def grid_source_panel_method_test():
-    circle = figure.Circle(10, num_points=25)
-    spm = SPMCircle(circle, 1.0)
+    fgr = figure.Circle(10, num_points=25)
+    spm = SPMCircle(fgr, 1.0)
+
+    # fgr = figure.Square(10)
+    # spm = SourcePanelMethod(fgr, 1)
 
     grid = figure.Grid(-15.0, -15.0, 30.0, 30.0, 30)
     plt = Plot(grid)
 
     spm.set_grid(grid)
 
-    plt.plot_figure(circle)
+    plt.plot_figure(fgr)
     plt.plot_stream_line(spm)
     # plt.plot_flow(spm)
 
