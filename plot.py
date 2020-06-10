@@ -68,6 +68,10 @@ class Plot:
                  verticalalignment='center')
 
     @staticmethod
+    def plot_point(x: float, y: float, style: str = '.k'):
+        plt.plot(x, y, style)
+
+    @staticmethod
     def title(text: str) -> None:
         plt.title(text)
 

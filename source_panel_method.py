@@ -20,12 +20,12 @@ class Geometry:
         # main angle of each panel
         self.fi = self.arc_tan_2(dy, dx)
         # angle between normal vector and panel
-        betta = self.fi + 0.5 * np.pi
+        self.betta = self.fi + 0.5 * np.pi
         # angle between normal vector and free stream velocity
-        self.delta = betta - alpha
+        self.delta = self.betta - alpha
         # normal vector components
-        self.nx = self.xc + self.s * np.cos(betta)
-        self.ny = self.yc + self.s * np.sin(betta)
+        self.nx = self.xc + self.s * np.cos(self.betta)
+        self.ny = self.yc + self.s * np.sin(self.betta)
         # sin, cos for angles
         self.sin_fi = np.sin(self.fi)
         self.cos_fi = np.cos(self.fi)
@@ -176,6 +176,13 @@ class SourcePanelMethod(Flow):
         assert sum(self.lambdas * self.geometry.s) < 1e-12
 
         self.calc_surface_cp(vn_inf, vt_inf, mn, mt)
+        cn = sum(self.surface_cp *
+                 self.geometry.s *
+                 np.sin(self.geometry.betta))
+        ca = sum(self.surface_cp *
+                 self.geometry.s *
+                 np.cos(self.geometry.betta))
+        assert cn < 1e-12 and ca < 1e-12
 
 
 class SPMCircle(SourcePanelMethod):

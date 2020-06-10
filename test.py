@@ -4,7 +4,7 @@ import flow
 from circulation import Circulation
 from os import listdir
 import numpy as np
-from source_panel_method import SPMCircle, SourcePanelMethod
+from source_panel_method import SPMCircle, SourcePanelMethod, Geometry
 
 
 def circulation_flow_figure_test() -> None:
@@ -91,7 +91,42 @@ def plot_airfoil_data() -> None:
     plt.show()
 
 
-def save_airfoil_images():
+def spm_geometry_and_inside_outside_test():
+    # # Write your own path here
+    # path = r'C:\Users\User\Documents\python\aero\airfoils_data'
+    # # Airfoil name
+    # name = 'goe623.txt'
+    # test_fig = figure.Airfoil(name, path)
+
+    test_fig = figure.Circle(10, num_points=8)
+    # test_fig = figure.Ellipse(10, 5, num_points=100)
+    # test_fig = figure.Square(10, num_points=100)
+    # test_fig = figure.Rectangle(10, 5, num_points=100)
+    # test_fig = figure.Triangle((0, 0), (6, 0), (3, 3))
+    # test_fig = figure.Triangle((0, 0), (0, 6), (3, 3))
+    # test_fig = figure.Triangle((0, 0), (6, 3), (3, 4))
+    # test_fig = figure.Polygon('Polygon',
+    #                           [(1, 1), (2, 2), (3, 3),
+    #                            (2, 3), (2, 4), (1, 4), (0, 3)])
+    # test_fig = figure.Ogive(2, 1, 5)
+    geometry = Geometry(test_fig, 1)
+    x0, y0, dx, dy = test_fig.rect
+    grid = figure.Grid(x0 - 0.1*dx, y0 - 0.1*dy,
+                       dx + 0.2*dx, dy + 0.2*dy, 20)
+    plt = Plot(grid)
+    plt.plot_figure(test_fig)
+    plt.plot_source_panel_method(geometry)
+
+    for x in grid.x:
+        for y in grid.y:
+            res = test_fig.is_inside(x, y)
+            if not res:
+                plt.plot_point(x, y, '.y')
+
+    plt.show()
+
+
+def save_all_airfoil_spm_geometry_test():
     """
     This test saves all airfoil images to
     the given directory.
@@ -104,14 +139,17 @@ def save_airfoil_images():
     for i, file in enumerate(files):
         airfoil = figure.Airfoil(file, airfoil_path)
 
+        geometry = Geometry(airfoil, 1)
+
         # Create grid
         x0, y0, dx, dy = airfoil.rect
-        grid = figure.Grid(x0 - 0.1, y0 - 0.1,
-                           dx + 0.2, dy + 0.2)
+        grid = figure.Grid(x0 - 0.1*dx, y0 - 0.1*dy,
+                           dx + 0.2*dx, dy + 0.2*dy)
 
         # Plot
         plt = Plot(grid)
         plt.plot_figure(airfoil)
+        plt.plot_source_panel_method(geometry)
         plt.title(file)
         plt.save_image('{}\\{}.png'.format(picture_path, file))
         plt.close()
@@ -136,11 +174,20 @@ def pressure_coef_source_panel_method_test():
 
 
 def grid_source_panel_method_test():
-    fgr = figure.Circle(10, num_points=25)
-    spm = SPMCircle(fgr, 1.0)
+    # fgr = figure.Circle(10, num_points=25)
+    # spm = SPMCircle(fgr, 1.0)
 
-    # fgr = figure.Square(10)
-    # spm = SourcePanelMethod(fgr, 1)
+    fgr = figure.Ellipse(10, 5, num_points=100)
+    # fgr = figure.Square(10, num_points=100)
+    # fgr = figure.Rectangle(10, 5, num_points=100)
+    # fgr = figure.Triangle((0, 0), (6, 0), (3, 3))
+    # fgr = figure.Triangle((0, 0), (0, 6), (3, 3))
+    # fgr = figure.Triangle((0, 0), (6, 3), (3, 4))
+    # fgr = figure.Polygon('Polygon',
+    #                           [(1, 1), (2, 2), (3, 3),
+    #                            (2, 3), (2, 4), (1, 4), (0, 3)])
+    # fgr = figure.Ogive(2, 1, 5)
+    spm = SourcePanelMethod(fgr, 1)
 
     grid = figure.Grid(-15.0, -15.0, 30.0, 30.0, 30)
     plt = Plot(grid)
@@ -157,6 +204,7 @@ def grid_source_panel_method_test():
 # circulation_flow_figure_test()
 # download_all_airfoil_data()
 # plot_airfoil_data()
-# save_airfoil_images()
+# spm_geometry_and_inside_outside_test()
+# save_all_airfoil_spm_geometry_test()
 # pressure_coef_source_panel_method_test()
 # grid_source_panel_method_test()

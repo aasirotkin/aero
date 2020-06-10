@@ -107,6 +107,10 @@ class DownloadHelper:
             xy.clear()
             xy.extend(xy_up)
             xy.extend(xy_down)
+        else:
+            xy_reverse = xy[::-1]
+            xy.clear()
+            xy.extend(xy_reverse)
 
     def __parse_data(self, text: list, name: str) -> tuple:
         """
@@ -184,7 +188,22 @@ class Figure:
         self.num_points = num_points
 
     def is_inside(self, x: float, y: float):
-        pass
+        if x < min(self.x) or x > max(self.x) or \
+                y < min(self.y) or y > max(self.y):
+            return False
+        count = 0
+        for (x1, y1), (x2, y2) in zip(self.coordinates, self.coordinates[1:]):
+            condition_x = (x2 > x1 and x1 <= x <= x2) or \
+                          (x1 > x2 and x2 <= x <= x1)
+            condition_y = y <= y1 or y <= y2
+            if not condition_x or not condition_y:
+                continue
+            k = (y2 - y1) / (x2 - x1) if x2 != x1 else 0.0
+            b = y1 - k * x1
+            y3 = k * x + b
+            if y3 >= y:
+                count += 1
+        return count % 2 != 0
 
     @staticmethod
     def lin_space(start: float, stop: float,
@@ -203,7 +222,7 @@ class Figure:
 
     @property
     def center(self):
-        return sum(self.x) / self.length,\
+        return sum(self.x) / self.length, \
                sum(self.y) / self.length
 
     @property
@@ -240,8 +259,8 @@ class Ellipse(Figure):
                          x0, y0, num_points)
 
     def is_inside(self, x: float, y: float):
-        return (x-self.x0)**2 / self.a**2 + \
-               (y-self.y0)**2 / self.b**2 <= 1.0
+        return (x - self.x0) ** 2 / self.a ** 2 + \
+               (y - self.y0) ** 2 / self.b ** 2 <= 1.0
 
 
 class Circle(Ellipse):
@@ -344,8 +363,8 @@ class Polygon(Figure):
             name = 'Polygon'
         length = len(points)
         # X, Y coordinates of triangle
-        xc = sum(p[0] for p in points)/length
-        yc = sum(p[1] for p in points)/length
+        xc = sum(p[0] for p in points) / length
+        yc = sum(p[1] for p in points) / length
         points.sort(key=lambda c: self.atan(xc, yc, c[0], c[1]),
                     reverse=True)
         coord_x, coord_y = np.empty(0), np.empty(0)
@@ -355,7 +374,7 @@ class Polygon(Figure):
                 p1, p2 = points[i], points[0]
                 endpoint = True
             else:
-                p1, p2 = points[i], points[i+1]
+                p1, p2 = points[i], points[i + 1]
             x, y = self.make_side(p1, p2,
                                   num_points, endpoint)
             coord_x = np.append(coord_x, x)
@@ -407,6 +426,7 @@ class Ogive(Figure):
     nose_r - nose radius
     length - whole length
     """
+
     @staticmethod
     def tangent(xc: float, yc: float, r: float, xt: float, yt: float):
         """
