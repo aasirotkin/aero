@@ -38,6 +38,7 @@ class Flow:
         self.name = name
         self.x0, self.y0 = x0, y0
         self.vx, self.vy = np.array, np.array
+        self.cp = np.array
 
 
 class RandomFlow(Flow):

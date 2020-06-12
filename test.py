@@ -156,7 +156,7 @@ def save_all_airfoil_spm_geometry_test():
         print(i, file)
 
 
-def pressure_coef_source_panel_method_test():
+def circle_pressure_coef_spm_test():
     circle = figure.Circle(10, num_points=100)
     spm = SPMCircle(circle, 1.0)
 
@@ -173,11 +173,35 @@ def pressure_coef_source_panel_method_test():
     plt.show()
 
 
-def grid_source_panel_method_test():
-    # fgr = figure.Circle(10, num_points=25)
-    # spm = SPMCircle(fgr, 1.0)
+def airfoil_pressure_coef_spm_test():
+    # Write your own path here
+    path = r'C:\Users\User\Documents\python\aero\airfoils_data'
+    # Airfoil name
+    name = 'naca2412.txt'
+    test_fig = figure.Airfoil(name, path)
+    spm = SourcePanelMethod(test_fig, 1, 0.0 * np.pi / 180.0)
 
-    fgr = figure.Ellipse(10, 5, num_points=100)
+    cp_upper = spm.surface_cp[spm.geometry.yc >= 0]
+    x_upper = spm.geometry.xc[spm.geometry.yc >= 0]
+    cp_lower = spm.surface_cp[spm.geometry.yc < 0]
+    x_lower = spm.geometry.xc[spm.geometry.yc < 0]
+    fgr_upper = figure.Figure('', x_upper, cp_upper)
+    fgr_lower = figure.Figure('', x_lower, cp_lower)
+    x01, y01, dx1, dy1 = fgr_upper.rect
+    x02, y02, dx2, dy2 = fgr_lower.rect
+
+    grid = figure.Grid(min(x01, x02), min(y01, y02),
+                       max(dx1, dx2), max(dy1, dy2))
+    plt = Plot(grid)
+    plt.plot_figure(fgr_upper, '*b')
+    plt.plot_figure(fgr_lower, '-r')
+    plt.invert_y_axis()
+    plt.show()
+
+
+def grid_source_panel_method_test():
+    fgr = figure.Circle(10, num_points=180)
+    # fgr = figure.Ellipse(10, 5, num_points=100)
     # fgr = figure.Square(10, num_points=100)
     # fgr = figure.Rectangle(10, 5, num_points=100)
     # fgr = figure.Triangle((0, 0), (6, 0), (3, 3))
@@ -194,9 +218,10 @@ def grid_source_panel_method_test():
 
     spm.set_grid(grid)
 
-    plt.plot_figure(fgr)
+    plt.plot_filled_figure(fgr)
     plt.plot_stream_line(spm)
     # plt.plot_flow(spm)
+    # plt.plot_contour(spm)
 
     plt.show()
 
@@ -206,5 +231,6 @@ def grid_source_panel_method_test():
 # plot_airfoil_data()
 # spm_geometry_and_inside_outside_test()
 # save_all_airfoil_spm_geometry_test()
-# pressure_coef_source_panel_method_test()
+# circle_pressure_coef_spm_test()
+# airfoil_pressure_coef_spm_test()
 # grid_source_panel_method_test()

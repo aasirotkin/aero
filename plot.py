@@ -27,9 +27,20 @@ class Plot:
         """
         self.__plot(flow, is_stream_line=True)
 
+    def plot_contour(self, flow: Flow) -> None:
+        self.__plot(flow, is_contour=True)
+
     @staticmethod
-    def plot_figure(figure: Figure, style: str = 'k'):
+    def plot_figure(figure: Figure, style: str = 'k') -> None:
         plt.plot(figure.x, figure.y, style)
+
+    @staticmethod
+    def plot_filled_figure(figure: Figure, style: str = 'k') -> None:
+        plt.fill(figure.x, figure.y, style)
+
+    @staticmethod
+    def invert_y_axis() -> None:
+        plt.gca().invert_yaxis()
 
     @staticmethod
     def plot_source_panel_method(geometry: Geometry):
@@ -46,7 +57,8 @@ class Plot:
 
     def __plot(self, flow: Flow,
                is_plot: bool = False,
-               is_stream_line: bool = False) -> None:
+               is_stream_line: bool = False,
+               is_contour: bool = False) -> None:
         if is_plot:
             plt.plot(self.grid.xx, self.grid.yy, 'k.')
             plt.quiver(self.grid.xx, self.grid.yy, flow.vx, flow.vy, color='r')
@@ -57,6 +69,10 @@ class Plot:
                            color='r', arrowstyle='-',
                            start_points=self.grid.stream_line_start)
             plt.quiver(self.grid.x, self.grid.y, flow.vx, flow.vy)
+
+        if is_contour:
+            plt.contourf(self.grid.xx, self.grid.yy,
+                         flow.cp, 500, cmap='jet')
 
         plt.title('{} Flow'.format(flow.name))
 
