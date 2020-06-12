@@ -172,18 +172,10 @@ class SourcePanelMethod(Flow):
         self.calc_surface_integrand(mn, mt)
 
         self.lambdas = np.linalg.solve(mn, -vn_inf)
-        print(self.lambdas)
+        # print(sum(self.lambdas * self.geometry.s))
         # assert sum(self.lambdas * self.geometry.s) < 1e-12
 
         self.calc_surface_cp(vn_inf, vt_inf, mn, mt)
-        cn = sum(self.surface_cp *
-                 self.geometry.s *
-                 abs(self.geometry.dx))
-        ca = sum(self.surface_cp *
-                 self.geometry.s *
-                 abs(self.geometry.dy))
-        print(cn, ca)
-        # assert cn < 1e-12 and ca < 1e-12
 
 
 class SPMCircle(SourcePanelMethod):

@@ -239,6 +239,14 @@ class Figure:
         dy = abs(max(self.y) - y0)
         return x0, y0, dx, dy
 
+    def rotate(self, angle: float) -> None:
+        x_cos = self.x * np.cos(angle)
+        x_sin = self.x * np.sin(angle)
+        y_cos = self.y * np.cos(angle)
+        y_sin = self.y * np.sin(angle)
+        self.x = x_cos - y_sin
+        self.y = x_sin + y_cos
+
 
 class Ellipse(Figure):
     """
