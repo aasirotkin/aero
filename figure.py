@@ -23,8 +23,12 @@ class Grid:
             if num_points == 0 else num_points
         self.y_num = int(max(height, 1) + 1) \
             if num_points == 0 else num_points
-        self.x = np.linspace(x0, x0 + width, self.x_num)
-        self.y = np.linspace(y0, y0 + height, self.y_num)
+        self.x = np.linspace(x0 - 0.5*width,
+                             x0 + 0.5*width,
+                             self.x_num)
+        self.y = np.linspace(y0 - 0.5*height,
+                             y0 + 0.5*height,
+                             self.y_num)
         self.xx, self.yy = np.meshgrid(self.x, self.y)
 
         x_stream_line = self.xx.min() * np.ones(self.y_num)
@@ -46,12 +50,11 @@ class DownloadHelper:
     def __new__(cls, *args, **kwargs):
         if not hasattr(cls, 'instance'):
             cls.instance = super(DownloadHelper, cls).__new__(cls)
-            cls.base_file_path = 'https://m-selig.ae.illinois.edu/ads/'
+            cls.base_file_path = 'https://m-selig.ae.illinois.edu/ads/coord_seligFmt/'
             cls.is_internet_on = cls.internet_on()
             cls.number = r'\s*([-+]?\d*\.\d*[eE]?[+-]?\d*)\s+([-+]?\d*\.\d*[eE]?[+-]?\d*)\s*'
             if cls.is_internet_on:
-                cls.html_page = urllib2.urlopen('{}coord_database.html'
-                                                .format(cls.base_file_path))
+                cls.html_page = urllib2.urlopen(cls.base_file_path)
                 cls.soup = BeautifulSoup(cls.html_page, 'html.parser')
         return cls.instance
 
@@ -90,8 +93,7 @@ class DownloadHelper:
     @staticmethod
     def __check_xy(xy: list, name: str):
         x_previous = xy[0][0]
-        if -0.1 < x_previous < 0.1 or \
-                'ua79sff' in name:
+        if -0.1 < x_previous < 0.1:
             direction_changed = False
             xy_up, xy_down = list(), list()
             for i, (x, y) in enumerate(xy):
@@ -152,7 +154,8 @@ class DownloadHelper:
             text = file.read().split('\n')
         return self.__parse_data(text, name)
 
-    def download_all_data(self, path: str = '', ext: str = 'txt') -> None:
+    def download_all_data(self, path: str = '', ext: str = 'txt',
+                          regexp: str = '.*\\.dat') -> None:
         """
         Downloads all data in the given path.
         More than 1500 airfoils.
@@ -160,10 +163,10 @@ class DownloadHelper:
         assert self.is_internet_on
         if not path:
             path = getcwd()
-        attrs = {'href': re.compile(f'.*\\.dat', re.IGNORECASE)}
+        attrs = {'href': re.compile(regexp, re.IGNORECASE)}
         data = self.soup.find_all('a', attrs=attrs)
-        for d in data:
-            name = re.sub('\\.dat', '', d.getText(), flags=re.IGNORECASE)
+        for i, d in enumerate(data):
+            name = re.sub('\\.dat', '', d.get('href'), flags=re.IGNORECASE)
             urllib2.urlretrieve(self.base_file_path + d.get('href'),
                                 '{}/{}.{}'.format(path, name.lower(), ext))
 
@@ -237,7 +240,7 @@ class Figure:
         x0, y0 = min(self.x), min(self.y)
         dx = abs(max(self.x) - x0)
         dy = abs(max(self.y) - y0)
-        return x0, y0, dx, dy
+        return x0 + 0.5*dx, y0 + 0.5*dy, dx, dy
 
     def rotate(self, angle: float) -> None:
         x_cos = self.x * np.cos(angle)

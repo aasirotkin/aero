@@ -14,7 +14,7 @@ def circulation_flow_figure_test() -> None:
     for given flow.
     """
     # Make grid for plot
-    grid = figure.Grid(-10, -10, 20, 20)
+    grid = figure.Grid(0, 0, 20, 20)
 
     # Create flow
     lift_flow = flow.LiftingCylinderFlow(vel=2, kappa=5, gamma=15)
@@ -54,7 +54,7 @@ def circulation_flow_figure_test() -> None:
     plt.show()
 
 
-def download_all_airfoil_data() -> None:
+def download_all_naca_airfoil_data_test() -> None:
     """
     This test downloads all airfoil data
     in the given directory, or in the current
@@ -65,24 +65,27 @@ def download_all_airfoil_data() -> None:
     dh = figure.DownloadHelper()
     # Write your own path here
     path = r'C:\Users\User\Documents\python\aero\airfoils_data'
-    dh.download_all_data(path)
+    dh.download_all_data(path, regexp='naca\d{4,6}\\.dat')
+    # dh.download_all_data(path)
 
 
-def plot_airfoil_data() -> None:
+def plot_airfoil_data_test() -> None:
     """
     This test plots airfoils by given name.
     """
     # Write your own path here
     path = r'C:\Users\User\Documents\python\aero\airfoils_data'
-    # Airfoil name
-    name = 'e636.txt'
+    # Airfoil name, offline mode
+    name = 'naca0006.txt'
     airfoil = figure.Airfoil(name, path)
-    # name = 'e636'
+
+    # Airfoil name, online mode
+    # name = 'naca0006'
     # airfoil = figure.Airfoil(name, online=True)
 
     # Create grid
     x0, y0, dx, dy = airfoil.rect
-    grid = figure.Grid(x0, y0, dx, dy)
+    grid = figure.Grid(x0, y0, dx + 0.2, dy + 0.5)
 
     # Plot
     plt = Plot(grid)
@@ -95,13 +98,13 @@ def spm_geometry_and_inside_outside_test():
     # # Write your own path here
     # path = r'C:\Users\User\Documents\python\aero\airfoils_data'
     # # Airfoil name
-    # name = 'goe623.txt'
+    # name = 'ua79sff.txt'
     # test_fig = figure.Airfoil(name, path)
 
-    test_fig = figure.Circle(10, num_points=8)
-    # test_fig = figure.Ellipse(10, 5, num_points=100)
-    # test_fig = figure.Square(10, num_points=100)
-    # test_fig = figure.Rectangle(10, 5, num_points=100)
+    test_fig = figure.Circle(10, num_points=20)
+    # test_fig = figure.Ellipse(10, 5, num_points=50)
+    # test_fig = figure.Square(10, num_points=50)
+    # test_fig = figure.Rectangle(10, 5, num_points=50)
     # test_fig = figure.Triangle((0, 0), (6, 0), (3, 3))
     # test_fig = figure.Triangle((0, 0), (0, 6), (3, 3))
     # test_fig = figure.Triangle((0, 0), (6, 3), (3, 4))
@@ -111,8 +114,8 @@ def spm_geometry_and_inside_outside_test():
     # test_fig = figure.Ogive(2, 1, 5)
     geometry = Geometry(test_fig, 1)
     x0, y0, dx, dy = test_fig.rect
-    grid = figure.Grid(x0 - 0.1*dx, y0 - 0.1*dy,
-                       dx + 0.2*dx, dy + 0.2*dy, 20)
+    grid = figure.Grid(x0, y0,
+                       1.5 * dx, 1.5 * dy, 20)
     plt = Plot(grid)
     plt.plot_figure(test_fig)
     plt.plot_source_panel_method(geometry)
@@ -139,12 +142,11 @@ def save_all_airfoil_spm_geometry_test():
     for i, file in enumerate(files):
         airfoil = figure.Airfoil(file, airfoil_path)
 
-        geometry = Geometry(airfoil, 1)
+        geometry = Geometry(airfoil)
 
         # Create grid
         x0, y0, dx, dy = airfoil.rect
-        grid = figure.Grid(x0 - 0.1*dx, y0 - 0.1*dy,
-                           dx + 0.2*dx, dy + 0.2*dy)
+        grid = figure.Grid(x0, y0, dx + 0.2, dy + 0.5)
 
         # Plot
         plt = Plot(grid)
@@ -160,7 +162,7 @@ def circle_pressure_coef_spm_test():
     circle = figure.Circle(10, num_points=100)
     spm = SPMCircle(circle, 1.0)
 
-    grid = figure.Grid(0.0, -3.0, 2.0 * np.pi, 4.0)
+    grid = figure.Grid(np.pi, -1.0, 2.0 * np.pi, 4.0)
     plt = Plot(grid)
     tetta = np.linspace(0.0, 2.*np.pi, 360)
     cp = 1. - 4. * (np.sin(tetta) ** 2)
@@ -205,15 +207,11 @@ def grid_source_panel_method_test():
     # fgr = figure.Square(10, num_points=100)
     # fgr = figure.Rectangle(10, 5, num_points=100)
     # fgr = figure.Triangle((0, 0), (6, 0), (3, 3))
-    # fgr = figure.Triangle((0, 0), (0, 6), (3, 3))
-    # fgr = figure.Triangle((0, 0), (6, 3), (3, 4))
-    # fgr = figure.Polygon('Polygon',
-    #                           [(1, 1), (2, 2), (3, 3),
-    #                            (2, 3), (2, 4), (1, 4), (0, 3)])
     # fgr = figure.Ogive(2, 1, 5)
+
     spm = SourcePanelMethod(fgr, 1)
 
-    grid = figure.Grid(-15.0, -15.0, 30.0, 30.0, 30)
+    grid = figure.Grid(0.0, 0.0, 30.0, 30.0, 30)
     plt = Plot(grid)
 
     spm.set_grid(grid)
@@ -227,8 +225,8 @@ def grid_source_panel_method_test():
 
 
 # circulation_flow_figure_test()
-# download_all_airfoil_data()
-# plot_airfoil_data()
+# download_all_naca_airfoil_data_test()
+# plot_airfoil_data_test()
 # spm_geometry_and_inside_outside_test()
 # save_all_airfoil_spm_geometry_test()
 # circle_pressure_coef_spm_test()
